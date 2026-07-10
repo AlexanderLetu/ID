@@ -294,6 +294,7 @@ function sendData() {
     fetch(GAS_URL, {
         method: 'POST',
         mode: 'cors',
+        redirect: 'follow', // <-- Добавлено
         body: JSON.stringify({
             action: 'processLists',
             lists: listsData,
@@ -424,6 +425,7 @@ function findNearestCity() {
     fetch(GAS_URL, {
         method: 'POST',
         mode: 'cors',
+        redirect: 'follow', // <-- Добавлено
         body: JSON.stringify({
             action: 'findNearest',
             targetPlace: inputPlace,
@@ -460,6 +462,7 @@ function clearServerCache(event) {
     fetch(GAS_URL, {
         method: 'POST',
         mode: 'cors',
+        redirect: 'follow', // <-- Добавлено
         body: JSON.stringify({ action: 'clearCache' })
     })
     .then(response => response.json())
