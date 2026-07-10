@@ -38,7 +38,50 @@
 
         <!-- Сюда в следующих частях мы добавим поля ввода Списков -->
         <main id="main-content">
-            <!-- Место для Части 2.2 -->
+                <!-- ⏳ ШАГ 1. ВВОД ДАННЫХ И ЗАПУСК ПОИСКА -->
+        <section class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-xs mb-6">
+            
+            <!-- Контейнер, куда будут добавляться все списки (по умолчанию два) -->
+            <div id="lists-container" class="space-y-4 mb-4">
+                
+                <!-- Список 1 -->
+                <div class="list-wrapper">
+                    <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Список 1</label>
+                    <textarea id="list-1" class="shop-list-input w-full h-32 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono resize-y" placeholder="Вставьте сюда логи магазинов (например: 23 Братск2 3...)"></textarea>
+                </div>
+
+                <!-- Список 2 -->
+                <div class="list-wrapper">
+                    <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Список 2</label>
+                    <textarea id="list-2" class="shop-list-input w-full h-32 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono resize-y" placeholder="Оставьте пустым для быстрого вывода городов или вставьте второй список для поиска пересечений..."></textarea>
+                </div>
+
+            </div>
+
+            <!-- Панель действий с кнопками -->
+            <div class="flex flex-col sm:flex-row gap-3 mt-6">
+                <!-- Синяя кнопка запуска поиска -->
+                <button onclick="startSearch()" class="flex-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-all cursor-pointer shadow-xs text-center">
+                    Найти совпадения
+                </button>
+                
+                <!-- Зелёная кнопка добавления нового списка -->
+                <button onclick="addNewList()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-all cursor-pointer shadow-xs text-center flex items-center justify-center gap-1">
+                    <span>➕</span> Добавить список
+                </button>
+
+                <!-- Серая кнопка сброса формы -->
+                <button onclick="resetAllForm()" class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium py-3 px-4 rounded-lg transition-all cursor-pointer text-center">
+                    Сбросить всё
+                </button>
+            </div>
+
+        </section>
+        
+        <!-- Сюда в следующих частях мы добавим блок результатов (Шаг 2 и Шаг 3) -->
+        <div id="results-section" class="hidden">
+            <!-- Место для Части 2.3 -->
+        </div>
         </main>
 
     </div>
@@ -90,6 +133,64 @@
             document.documentElement.classList.add('dark');
             document.getElementById('theme-icon').innerText = '☀️';
             document.getElementById('theme-text').innerText = 'Светлая тема';
+        }
+                let listCount = 2; // Текущее количество списков на экране
+
+        // Функция динамического добавления нового списка (Кнопка +)
+        function addNewList() {
+            listCount++;
+            const container = document.getElementById('lists-container');
+            
+            // Создаем новый блок для списка
+            const newListDiv = document.createElement('div');
+            newListDiv.className = "list-wrapper dynamic-list animate-fade-in";
+            newListDiv.id = `wrapper-list-${listCount}`;
+            
+            newListDiv.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Список ${listCount}</label>
+                    <button onclick="removeList(${listCount})" class="text-xs text-red-500 hover:text-red-600 cursor-pointer font-medium">Удалить</button>
+                </div>
+                <textarea id="list-${listCount}" class="shop-list-input w-full h-32 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono resize-y" placeholder="Вставьте данные для списка ${listCount}..."></textarea>
+            `;
+            
+            container.appendChild(newListDiv);
+        }
+
+        // Функция удаления конкретного динамического списка
+        function removeList(id) {
+            const listToRemove = document.getElementById(`wrapper-list-${id}`);
+            if (listToRemove) {
+                listToRemove.remove();
+            }
+        }
+
+        // Базовая функция сброса всей формы (Шаг 4 инструкции)
+        function resetAllForm() {
+            // 1. Находим и удаляем все созданные динамические списки (начиная со Списка 3)
+            const dynamicLists = document.querySelectorAll('.dynamic-list');
+            dynamicLists.forEach(list => list.remove());
+            listCount = 2; // Возвращаем счетчик к исходным двум
+            
+            // 2. Очищаем текст в Списке 1 и Списке 2
+            document.getElementById('list-1').value = '';
+            document.getElementById('list-2').value = '';
+            
+            // 3. Скрываем блок результатов (его мы сверстаем в следующей части)
+            const resultsSection = document.getElementById('results-section');
+            if (resultsSection) {
+                resultsSection.classList.add('hidden');
+            }
+            
+            // 4. Ставим фокус ввода обратно на первый список
+            document.getElementById('list-1').focus();
+            console.log("Форма полностью очищена");
+        }
+
+        // Заглушка для будущей функции поиска (чтобы кнопка не выдавала ошибку при клике)
+        function startSearch() {
+            console.log("Запущен процесс поиска и пересечения массивов...");
+            // Эту логику мы пропишем в финальной части
         }
     </script>
 </body>
