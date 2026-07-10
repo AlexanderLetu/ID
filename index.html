@@ -178,166 +178,184 @@
             color: #16a34a;
             font-weight: 500;
         }
+        /* Стили для темной темы */
+        body.dark-mode { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+        body.dark-mode .app-card { background: #1e293b; color: #f8fafc; }
+        body.dark-mode .app-title { color: #3b82f6; }
+        body.dark-mode .input-label { color: #cbd5e1; }
+        body.dark-mode .input-textarea { background: #334155; border-color: #475569; color: #f8fafc; }
+        body.dark-mode .top-navbar { background: #334155; }
+        body.dark-mode .nav-btn { color: #94a3b8; }
+
+        /* Кнопка удаления для динамических списков */
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .flex-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
 
     </style>
 </head>
+<body>
 
-<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
-
-    <div class="max-w-4xl mx-auto p-4 sm:p-6">
+    <!-- Главная белая карточка приложения -->
+    <div class="app-card">
         
-        <!-- 🎛️ ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (ВЕРХНЯЯ ПАНЕЛЬ) -->
-        <header class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm mb-6">
-            
-            <!-- Переключатели режима поиска -->
-            <div class="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg w-full sm:w-auto">
-                <button id="btn-search-city" onclick="setSearchMode('city')" class="flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-white">
-                    🏙️ Погородно
-                </button>
-                <button id="btn-search-code" onclick="setSearchMode('code')" class="flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                    🪪 По коду
-                </button>
-            </div>
-
-            <!-- Переключатель Светлой/Темной темы -->
-            <button onclick="toggleTheme()" class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-all cursor-pointer">
-                <span id="theme-icon">🌙</span> 
-                <span id="theme-text">Темная тема</span>
+        <!-- Заголовок сайта -->
+        <h1 class="app-title">📍 Инструмент поиска пересечений и ближайшего города</h1>
+        
+        <!-- 🎛️ Верхняя панель управления -->
+        <div class="top-navbar">
+            <button id="btn-search-city" onclick="setSearchMode('city')" class="nav-btn active">
+                🏙️ Поиск по городам
             </button>
+            <button id="btn-search-code" onclick="setSearchMode('code')" class="nav-btn">
+                🪪 Поиск по коду магазина
+            </button>
+            <button onclick="toggleTheme()" class="nav-btn">
+                🌙 Темная тема
+            </button>
+        </div>
+
+        <!-- ⏳ Блок ввода списков -->
+        <div id="lists-container">
             
-        </header>
-
-        <!-- ⏳ ШАГ 1. ВВОД ДАННЫХ И ЗАПУСК ПОИСКА -->
-        <main id="main-content">
-            <section class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm mb-6">
-                
-                <!-- Контейнер для списков -->
-                <div id="lists-container" class="space-y-4 mb-4">
-                    
-                    <!-- Список 1 -->
-                    <div class="list-wrapper">
-                        <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Список 1</label>
-                        <textarea id="list-1" class="shop-list-input w-full h-32 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-y" placeholder="Вставьте сюда логи магазинов (например: 23 Братск2 3...)"></textarea>
-                    </div>
-
-                    <!-- Список 2 -->
-                    <div class="list-wrapper">
-                        <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Список 2</label>
-                        <textarea id="list-2" class="shop-list-input w-full h-32 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-y" placeholder="Оставьте пустым для быстрого вывода городов или вставьте второй список для поиска пересечений..."></textarea>
-                    </div>
-
-                </div>
-
-                <!-- Панель действий с кнопками -->
-                <div class="flex flex-col sm:flex-row gap-3 mt-6">
-                    <button onclick="startSearch()" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-all cursor-pointer shadow-sm text-center">
-                        Найти совпадения
-                    </button>
-                    
-                    <button onclick="addNewList()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-all cursor-pointer shadow-sm text-center flex items-center justify-center gap-1">
-                        <span>➕</span> Добавить список
-                    </button>
-
-                    <button onclick="resetAllForm()" class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium py-3 px-4 rounded-lg transition-all cursor-pointer text-center">
-                        Сбросить всё
-                    </button>
-                </div>
-
-            </section>
-            
-            <!-- Сюда в следующих частях мы добавим блок результатов -->
-            <div id="results-section" class="hidden">
-                <!-- Место для Блока Результатов -->
+            <!-- Список 1 -->
+            <div class="input-group">
+                <label class="input-label">Список 1</label>
+                <textarea id="list-1" class="input-textarea" placeholder="Вставьте первый список строк..."></textarea>
             </div>
-        </main>
+
+            <!-- Список 2 -->
+            <div class="input-group">
+                <label class="input-label">Список 2</label>
+                <textarea id="list-2" class="input-textarea" placeholder="Вставьте второй список строк..."></textarea>
+            </div>
+
+        </div>
+
+        <!-- Зелёная кнопка добавления нового списка -->
+        <button onclick="addNewList()" class="btn-add">
+            ➕ Добавить список
+        </button>
+
+        <!-- Основные кнопки действий -->
+        <div class="actions-panel">
+            <button onclick="startSearch()" class="btn-main btn-primary">
+                Найти совпадения
+            </button>
+            <button onclick="resetAllForm()" class="btn-main btn-secondary">
+                Сбросить всё
+            </button>
+        </div>
+
+        <!-- Нижня панель статуса -->
+        <div class="status-bar">
+            <div class="status-active">
+                🟢 База городов: активна (изм 6 часов)
+            </div>
+            <div style="color: #3b82f6; cursor: pointer;" onclick="updateDatabase()">
+                🔄 Обновить базу сейчас
+            </div>
+        </div>
 
     </div>
-
-    <!-- ЛОГИКА УПРАВЛЕНИЯ -->
     <script>
-        let currentSearchMode = 'city';
-        let listCount = 2;
+        // Переменные состояния приложения
+        let currentSearchMode = 'city'; // 'city' или 'code'
+        let listCount = 2; // Начальное количество списков
+        let storeDatabase = {}; // Сюда запишем данные из Google Таблицы
 
-        // Переключение режимов поиска
+        // Вставьте сюда вашу ссылку из Google Apps Script (Шаг 1)
+        const GOOGLE_SCRIPT_URL = "ЗДЕСЬ_ВАША_ССЫЛКА_ИЗ_GOOGLE";
+
+        // 1. Переключение режимов поиска (Погородно / По коду)
         function setSearchMode(mode) {
             currentSearchMode = mode;
             const btnCity = document.getElementById('btn-search-city');
             const btnCode = document.getElementById('btn-search-code');
             
             if (mode === 'city') {
-                btnCity.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-white";
-                btnCode.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200";
+                btnCity.classList.add('active');
+                btnCode.classList.remove('active');
             } else {
-                btnCode.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-white";
-                btnCity.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200";
+                btnCode.classList.add('active');
+                btnCity.classList.remove('active');
             }
+            console.log("Режим изменен на:", currentSearchMode);
         }
 
-        // Управление темой
+        // 2. Переключение Темной / Светлой темы
         function toggleTheme() {
-            const html = document.documentElement;
-            const icon = document.getElementById('theme-icon');
-            const text = document.getElementById('theme-text');
-            
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                icon.innerText = '🌙';
-                text.innerText = 'Темная тема';
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.add('dark');
-                icon.innerText = '☀️';
-                text.innerText = 'Светлая тема';
-                localStorage.setItem('theme', 'dark');
-            }
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('app-theme', isDark ? 'dark' : 'light');
         }
 
-        // Динамическое добавление списка
+        // Проверка темы при загрузке страницы
+        if (localStorage.getItem('app-theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // 3. Динамическое добавление новых списков (Кнопка +)
         function addNewList() {
             listCount++;
             const container = document.getElementById('lists-container');
-            const newListDiv = document.createElement('div');
-            newListDiv.className = "list-wrapper dynamic-list";
-            newListDiv.id = `wrapper-list-${listCount}`;
             
-            newListDiv.innerHTML = `
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Список ${listCount}</label>
-                    <button onclick="removeList(${listCount})" class="text-xs text-red-500 hover:text-red-600 cursor-pointer font-medium">Удалить</button>
+            const newGroup = document.createElement('div');
+            newGroup.className = 'input-group';
+            newGroup.id = `group-list-${listCount}`;
+            
+            newGroup.innerHTML = `
+                <div class="flex-header">
+                    <label class="input-label">Список ${listCount}</label>
+                    <button type="button" onclick="removeList(${listCount})" class="btn-delete">Удалить</button>
                 </div>
-                <textarea id="list-${listCount}" class="shop-list-input w-full h-32 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-y" placeholder="Вставьте данные для списка ${listCount}..."></textarea>
+                <textarea id="list-${listCount}" class="input-textarea" placeholder="Вставьте данные для списка ${listCount}..."></textarea>
             `;
-            container.appendChild(newListDiv);
+            container.appendChild(newGroup);
         }
 
+        // Удаление динамического списка
         function removeList(id) {
-            const listToRemove = document.getElementById(`wrapper-list-${id}`);
-            if (listToRemove) listToRemove.remove();
+            const el = document.getElementById(`group-list-${id}`);
+            if (el) el.remove();
         }
 
-        // Полный сброс формы
+        // 4. Очистка формы (Шаг 4 инструкции)
         function resetAllForm() {
-            const dynamicLists = document.querySelectorAll('.dynamic-list');
-            dynamicLists.forEach(list => list.remove());
+            // Удаляем все списки начиная с 3-го
+            for (let i = 3; i <= listCount; i++) {
+                removeList(i);
+            }
             listCount = 2;
+            
+            // Зачищаем базовые поля
             document.getElementById('list-1').value = '';
             document.getElementById('list-2').value = '';
-            const resultsSection = document.getElementById('results-section');
-            if (resultsSection) resultsSection.classList.add('hidden');
-            document.getElementById('list-1').focus();
+            
+            console.log("Форма сброшена к исходному состоянию");
         }
 
+        // Функция-заглушка для обновления базы данных
+        function updateDatabase() {
+            alert("Запрос к Google Таблице отправлен...");
+        }
+
+        // Функция-заглушка для старта поиска
         function startSearch() {
-            console.log("Поиск запущен...");
-        }
-
-        // Инициализация темы
-        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-            document.getElementById('theme-icon').innerText = '☀️';
-            document.getElementById('theme-text').innerText = 'Светлая тема';
+            alert("Запуск обработки списков...");
         }
     </script>
+
 </body>
 </html>
-
