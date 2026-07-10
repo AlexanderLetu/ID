@@ -461,14 +461,15 @@ let storeDatabase = {};
 function loadDatabase() {
     const statusText = document.querySelector('.status-active');
     
-    // ТЕПЕРЬ ПРОВЕРКА ПРАВИЛЬНАЯ: проверяем только на пустоту или на дефолтный текст
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("ЗДЕСЬ_ВАША_ССЫЛКА")) {
+    // Если переменная пустая — выводим ошибку
+    if (!GOOGLE_SCRIPT_URL) {
         statusText.innerHTML = "🔴 Ошибка: Пропишите ссылку на Google Скрипт";
         return;
     }
     
     statusText.innerHTML = "⏳ Загрузка базы данных магазинов...";
     
+    // Делаем реальный запрос по нашей ссылке
     fetch(GOOGLE_SCRIPT_URL)
         .then(res => res.json())
         .then(data => {
