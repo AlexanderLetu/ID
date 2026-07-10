@@ -294,7 +294,10 @@ function sendData() {
     fetch(GAS_URL, {
         method: 'POST',
         mode: 'cors',
-        redirect: 'follow', // <-- Добавлено
+        redirect: 'follow',
+        headers: {
+            'Content-Type': 'text/plain;charset=utf-8' // <-- ДОБАВЛЕНО ДЛЯ ЗАЩИТЫ ОТ СБРОСА СВЯЗИ
+        },
         body: JSON.stringify({
             action: 'processLists',
             lists: listsData,
@@ -425,7 +428,10 @@ function findNearestCity() {
     fetch(GAS_URL, {
         method: 'POST',
         mode: 'cors',
-        redirect: 'follow', // <-- Добавлено
+        redirect: 'follow',
+        headers: {
+            'Content-Type': 'text/plain;charset=utf-8' // <-- ДОБАВЛЕНО ДЛЯ ЗАЩИТЫ ОТ СБРОСА СВЯЗИ
+        },
         body: JSON.stringify({
             action: 'findNearest',
             targetPlace: inputPlace,
@@ -462,7 +468,10 @@ function clearServerCache(event) {
     fetch(GAS_URL, {
         method: 'POST',
         mode: 'cors',
-        redirect: 'follow', // <-- Добавлено
+        redirect: 'follow',
+        headers: {
+            'Content-Type': 'text/plain;charset=utf-8' // <-- ДОБАВЛЕНО ДЛЯ ЗАЩИТЫ ОТ СБРОСА СВЯЗИ
+        },
         body: JSON.stringify({ action: 'clearCache' })
     })
     .then(response => response.json())
