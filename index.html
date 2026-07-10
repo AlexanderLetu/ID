@@ -1,367 +1,96 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/jpeg" href="favicon.jpg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Инструмент ИД</title>
-<style>
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    min-height: 100vh;
-    box-sizing: border-box;
-    transition: background-color 0.8s ease; 
-    overflow-x: hidden;
-    position: relative;
-    background-color: #7ec0ee;
-    background-image: linear-gradient(to bottom, rgba(126,192,238,0.4) 0%, rgba(236,236,236,0.4) 100%);
-    background-repeat: no-repeat;
-    background-size: cover;
-}
-body::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    z-index: -1;
-    transition: all 0.8s ease;
-    background: radial-gradient(circle at 10% 10%, rgba(255,255,255,0.8) 0%, transparent 40%),
-                radial-gradient(circle at 25% 15%, rgba(255,255,255,0.4) 0%, transparent 20%),
-                linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
-    opacity: 0.9;
-}
-body.dark-mode {
-    color: #f4f6f9;
-    background-color: #0b1522;
-    background-image: linear-gradient(to bottom, rgba(11,21,34,0.6) 0%, rgba(25,25,35,0.8) 100%);
-}
-body.dark-mode::before {
-    opacity: 1;
-    background: radial-gradient(circle at 15% 15%, #fff 1.5px, transparent 2.5px),
-                radial-gradient(circle at 45% 25%, #fff 2px, transparent 3.5px),
-                radial-gradient(circle at 75% 12%, #fff 1.5px, transparent 2.5px),
-                radial-gradient(circle at 30% 45%, #fff 2.5px, transparent 4px),
-                radial-gradient(circle at 85% 50%, #fff 2px, transparent 3.5px);
-    animation: twinkleStars 3s ease-in-out infinite alternate;
-}
-@keyframes twinkleStars {
-    0% { opacity: 0.4; }
-    100% { opacity: 1; }
-}
-.container {
-    width: 100%;
-    max-width: 800px;
-    background: rgba(255, 255, 255, 0.9); 
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-    backdrop-filter: blur(8px); 
-    -webkit-backdrop-filter: blur(8px);
-    height: fit-content;
-    transition: background-color 0.5s ease;
-    z-index: 1;
-}
-body.dark-mode .container {
-    background-color: rgba(43, 43, 43, 0.88);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-    color: #ffffff;
-}
-h2 { color: #2c3e50; margin-top: 0; text-align: center; }
-body.dark-mode h2 { color: #f4f6f9; }
-.tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #eef2f7; padding-bottom: 15px; }
-body.dark-mode .tabs { border-bottom-color: #444; }
-.tab-btn { padding: 10px 20px; border: none; background: #eef2f7; color: #7f8c8d; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-.tab-btn.active { background: #3498db; color: white; }
-body.dark-mode .tab-btn { background: #3d3d3d; color: #bdc3c7; }
-body.dark-mode .tab-btn.active { background: #3498db; color: white; }
-.theme-toggle-btn { background: #eef2f7; color: #7f8c8d; }
-body.dark-mode .theme-toggle-btn { background: #3d3d3d; color: #bdc3c7; }
-.list-area { margin-bottom: 20px; }
-.list-area label { display: block; font-weight: bold; margin-bottom: 8px; color: #34495e; }
-body.dark-mode .list-area label { color: #dcdde1; }
-textarea, .geo-input { width: 100%; height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; resize: vertical; box-sizing: border-box; font-family: monospace; background: white; color: black; }
-.geo-input { height: auto; }
-body.dark-mode textarea, body.dark-mode .geo-input { background: #2c2c2c; color: #fff; border-color: #555; }
-.actions { display: flex; gap: 10px; margin-top: 15px; }
-button.main-btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-.btn-add { background: #2ecc71; color: white; width: 100%; margin-bottom: 15px;}
-.btn-add:hover { background: #27ae60; }
-.btn-submit { background: #3498db; color: white; }
-.btn-submit:hover { background: #2980b9; }
-.btn-clear { background: #95a5a6; color: white; }
-.btn-clear:hover { background: #7f8c8d; }
-#results { margin-top: 25px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 5px solid #3498db; display: none; color: black; }
-body.dark-mode #results { background: #2c2c2c; color: #fff; }
-body.dark-mode #results h3 { color: #ecf0f1; }
-.result-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #eee; }
-body.dark-mode .result-item-row { border-bottom-color: #444; }
-.result-key-name { font-weight: 500; }
-.store-badges-container { display: flex; gap: 6px; }
-.store-badge { background: #eef2f7; color: #2c3e50; padding: 4px 10px; border: 1px solid #dcdde1; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-.store-badge:hover { background: #3498db; color: white; border-color: #3498db; }
-body.dark-mode .store-badge { background: #3d3d3d; color: #f4f6f9; border-color: #555; }
-body.dark-mode .store-badge:hover { background: #3498db; color: white; }
-.cache-panel { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #7f8c8d; background: #eef2f7; padding: 8px 12px; border-radius: 6px; }
-body.dark-mode .cache-panel { background: #333333; color: #bdc3c7; }
-.cache-link { color: #2980b9; text-decoration: none; font-weight: bold; }
-body.dark-mode .cache-link { color: #3498db; }
-.nearest-block { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc; }
-.nearest-label { font-weight: bold; display: block; margin-bottom: 8px; }
-.nearest-result { margin-top: 10px; font-weight: bold; color: #27ae60; }
-body.dark-mode .nearest-result { color: #2ecc71; }
-.nearest-highlight { color: #2980b9; }
-body.dark-mode .nearest-highlight { color: #3498db; }
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(3px); }
-.modal-window { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; color: #333; }
-body.dark-mode .modal-window { background: #2d2d2d; color: #fff; }
-.modal-close { position: absolute; top: 10px; right: 15px; font-size: 22px; cursor: pointer; color: #95a5a6; }
-.modal-row { display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; font-family: monospace; font-size: 13px; border: 1px solid #eee; }
-body.dark-mode .modal-row { background: #3d3d3d; border-color: #555; }
-body.dark-mode .modal-row span { color: #ffffff !important; }
-.copy-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; transition: transform 0.1s; }
-.copy-btn:active { transform: scale(0.9); }
-</style>
+    <title>Поиск магазинов и пересечений</title>
+    <!-- Подключаем Tailwind CSS для красивой верстки без написания лишнего CSS кода -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        /* Стили для плавной смены темы */
+        body { transition: background-color 0.3s, color 0.3s; }
+    </style>
 </head>
-<body>
-<div class="container">
-    <h2>📍 Поиск пересечений и ближайшего города</h2>
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchMode('city', this)">🏙️ Поиск по городам</button>
-        <button class="tab-btn" onclick="switchMode('code', this)">🪪 Поиск по коду магазина</button>
-        <button id="theme-toggle" class="tab-btn theme-toggle-btn" onclick="toggleTheme()">🌙 Темная тема</button>
-    </div>
-    <div id="lists-container">
-        <div class="list-area">
-            <label>Список 1</label>
-            <textarea class="city-input" placeholder="Вставьте первый список строк..."></textarea>
-        </div>
-        <div class="list-area">
-            <label>Список 2</label>
-            <textarea class="city-input" placeholder="Вставьте второй список строк..."></textarea>
-        </div>
-    </div>
-    <button class="main-btn btn-add" onclick="addNewList()">➕ Добавить список</button>
-    <div class="actions">
-        <button class="main-btn btn-submit" id="submit-btn" onclick="sendData()">Найти совпадения</button>
-        <button class="main-btn btn-clear" onclick="clearAll()">Сбросить всё</button>
-    </div>
-    <div class="cache-panel" id="cache-panel">
-        <span>🟢 База городов: <strong style="color: #27ae60;">активна (кэш 6 часов)</strong></span>
-        <a href="#" class="cache-link" onclick="clearServerCache(event)">🔄 Обновить базу сейчас</a>
-    </div>
-    <div id="results">
-        <h3>🔍 Результаты пересечения (<span id="count">0</span>):</h3>
-        <div id="results-list"></div>
-        <div id="nearest-block" class="nearest-block">
-            <label class="nearest-label">📍 Найти ближайший из найденных:</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="target-city" class="geo-input" placeholder="Введи деревню, село или город (например: село Выпуково)">
-                <button class="tab-btn" style="background: #e67e22; color: white; margin: 0;" onclick="findNearestCity()">Найти ближайший</button>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
+
+    <div class="max-w-4xl mx-auto p-4 sm:p-6">
+        
+        <!-- 🎛️ ЭЛЕМЕНТЫ УПРАВЛЕНИЯ (ВЕРХНЯЯ ПАНЕЛЬ) -->
+        <header class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs mb-6">
+            
+            <!-- Переключатели режима поиска -->
+            <div class="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg w-full sm:w-auto">
+                <button id="btn-search-city" onclick="setSearchMode('city')" class="flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer bg-white dark:bg-gray-600 shadow-xs text-blue-600 dark:text-white">
+                    🏙️ Погородно
+                </button>
+                <button id="btn-search-code" onclick="setSearchMode('code')" class="flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    🪪 По коду
+                </button>
             </div>
-            <div id="nearest-result" class="nearest-result"></div>
-        </div>
+
+            <!-- Переключатель Светлой/Темной темы -->
+            <button onclick="toggleTheme()" class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-all cursor-pointer">
+                <span id="theme-icon">🌙</span> 
+                <span id="theme-text">Темная тема</span>
+            </button>
+            
+        </header>
+
+        <!-- Сюда в следующих частях мы добавим поля ввода Списков -->
+        <main id="main-content">
+            <!-- Место для Части 2.2 -->
+        </main>
+
     </div>
-</div>
-<div id="store-modal" class="modal-overlay" onclick="closeModal(event)">
-    <div class="modal-window" onclick="event.stopPropagation()">
-        <span class="modal-close" onclick="closeModal(null)">&times;</span>
-        <h3 style="margin-top: 0; margin-bottom: 20px; color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 18px;">📋 Карточка магазина</h3>
-        <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">📍 Точный адрес отгрузки:</div>
-        <div class="modal-row">
-            <span id="modal-address-text" style="white-space: pre-wrap; flex: 1; padding-right: 10px; font-weight: 500; line-height: 1.4;"></span>
-            <button class="copy-btn" title="Скопировать адрес" aria-label="Скопировать адрес" onclick="copyTextFromModal('modal-address-text', this)">📋</button>
-        </div>
-        <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">🪪 Код Axapta:</div>
-        <div class="modal-row">
-            <span id="modal-code-text" style="flex: 1; font-weight: bold; color: #2c3e50;"></span>
-            <button class="copy-btn" title="Скопировать код" aria-label="Скопировать код" onclick="copyTextFromModal('modal-code-text', this)">📋</button>
-        </div>
-    </div>
-</div>
 
-<script>
-// ВСТАВЬ СВОЮ ССЫЛКУ МЕЖДУ ОДИНАРНЫМИ КАВЫЧКАМИ
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyH9C1l1RSasxQP5xrENVXZpHtO3l3g_Xz3e0UY6hMIU5Ytyu7Qy4LBu2RWlKQHspLb/exec'; 
+    <!-- В самом низу страницы подключаем логику управления интерфейсом -->
+    <script>
+        // Глобальное состояние приложения
+        let currentSearchMode = 'city'; // Режим по умолчанию: city или code
+        
+        // 1. Функция переключения режимов поиска
+        function setSearchMode(mode) {
+            currentSearchMode = mode;
+            const btnCity = document.getElementById('btn-search-city');
+            const btnCode = document.getElementById('btn-search-code');
+            
+            if (mode === 'city') {
+                // Активируем кнопку "Погородно"
+                btnCity.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer bg-white dark:bg-gray-600 shadow-xs text-blue-600 dark:text-white";
+                btnCode.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200";
+            } else {
+                // Активируем кнопку "По коду"
+                btnCode.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer bg-white dark:bg-gray-600 shadow-xs text-blue-600 dark:text-white";
+                btnCity.className = "flex-1 sm:flex-initial text-center px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200";
+            }
+            console.log("Режим поиска изменен на:", currentSearchMode);
+        }
 
-let currentMode = 'city'; 
-let listCount = 2;
+        // 2. Функция управления Темной/Светлой темой
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.innerText = '🌙';
+                text.innerText = 'Темная тема';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                icon.innerText = '☀️';
+                text.innerText = 'Светлая тема';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
 
-function switchMode(mode, element) {
-    currentMode = mode;
-    document.querySelectorAll('.tabs .tab-btn:not(#theme-toggle)').forEach(btn => btn.classList.remove('active'));
-    element.classList.add('active');
-    
-    const placeholders = document.querySelectorAll('.city-input');
-    placeholders.forEach(tx => {
-        tx.placeholder = mode === 'city' ? "Вставьте список городов..." : "Вставьте список кодов...";
-    });
-}
-
-function addNewList() {
-    listCount++;
-    const container = document.getElementById('lists-container');
-    const div = document.createElement('div');
-    div.className = 'list-area';
-    const placeholderText = currentMode === 'city' ? "Вставьте список городов..." : "Вставьте список кодов...";
-    div.innerHTML = `<label>Список ${listCount}</label><textarea class="city-input" placeholder="${placeholderText}"></textarea>`;
-    container.appendChild(div);
-}
-function sendData() {
-    const btn = document.getElementById('submit-btn');
-    btn.disabled = true;
-    btn.innerText = 'Обработка данных...';
-    const textareas = document.querySelectorAll('.city-input');
-    const listsData = [];
-    textareas.forEach(textarea => { if (textarea.value.trim()) listsData.push(textarea.value); });
-    if (listsData.length < 2) {
-        alert('Для поиска пересечений необходимо заполнить как минимум два списка!');
-        btn.disabled = false;
-        btn.innerText = 'Найти совпадения';
-        return;
-    }
-    fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'cors',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'processLists', lists: listsData, searchType: currentMode })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) { showResults(result.data, listsData.length); } 
-        else { alert('Ошибка сервера: ' + result.error); btn.disabled = false; btn.innerText = 'Найти совпадения'; }
-    })
-    .catch(err => { alert('Ошибка отправки: ' + err.message); btn.disabled = false; btn.innerText = 'Найти совпадения'; });
-}
-
-function showResults(response, totalListsSent) {
-    document.getElementById('submit-btn').disabled = false;
-    document.getElementById('submit-btn').innerText = 'Найти совпадения';
-    const resultsBlock = document.getElementById('results');
-    const resultsList = document.getElementById('results-list');
-    const countSpan = document.getElementById('count');
-    const resultsHeader = document.querySelector('#results h3');
-    resultsList.innerHTML = '';
-    countSpan.innerText = response.length;
-    if (resultsHeader) resultsHeader.innerHTML = `🔍 Результаты пересечения (<span id="count">${response.length}</span>):`;
-    if (response.length === 0) {
-        resultsList.innerHTML = '<div style="padding:10px; color:#7f8c8d;">Совпадений не найдено. Списки не пересекаются.</div>';
-    } else {
-        response.forEach(item => {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'result-item-row';
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'result-key-name';
-            nameSpan.innerText = item.displayKey;
-            rowDiv.appendChild(nameSpan);
-            const badgesContainer = document.createElement('div');
-            badgesContainer.className = 'store-badges-container';
-            item.topStores.forEach(store => {
-                const badge = document.createElement('button');
-                badge.type = 'button';
-                badge.className = 'store-badge';
-                badge.innerText = `${store.code} (${store.stock} шт)`;
-                badge.onclick = () => openModal(store.address, store.code);
-                badgesContainer.appendChild(badge);
-            });
-            rowDiv.appendChild(badgesContainer);
-            resultsList.appendChild(rowDiv);
-        });
-    }
-    resultsBlock.style.display = 'block';
-}
-function openModal(address, code) {
-    document.getElementById('modal-address-text').innerText = address;
-    document.getElementById('modal-code-text').innerText = code;
-    document.getElementById('store-modal').style.display = 'flex';
-}
-function closeModal(event) { if (!event || event.target === document.getElementById('store-modal')) document.getElementById('store-modal').style.display = 'none'; }
-function copyTextFromModal(elementId, btnElement) {
-    const text = document.getElementById(elementId).innerText;
-    navigator.clipboard.writeText(text).then(() => {
-        const originalText = btnElement.innerText; btnElement.innerText = '✅';
-        setTimeout(() => { btnElement.innerText = originalText; }, 1500);
-    });
-}
-
-function findNearestCity() {
-    const inputField = document.getElementById('target-city');
-    const resultDiv = document.getElementById('nearest-result');
-    const inputPlace = inputField.value.trim();
-    if (!inputPlace) { alert('Введите населенный пункт!'); return; }
-    resultDiv.innerHTML = '🔍 Вычисляем расстояния через сервера Google...';
-    const foundItems = document.querySelectorAll('.result-key-name');
-    let foundCities = [];
-    foundItems.forEach(item => foundCities.push(item.innerText.trim()));
-    if (foundCities.length === 0) { resultDiv.innerHTML = '<span style="color:#e74c3c;">Нет городов для сравнения.</span>'; return; }
-    fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'cors',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'findNearest', targetPlace: inputPlace, foundCities: foundCities })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            let timeString = result.data.clientTime ? ` местное время ${result.data.clientTime}` : '';
-            resultDiv.innerHTML = `💡 Ближайшая точка: <span class="nearest-highlight">${result.data.city}</span> (~${result.data.distance} км от ${inputPlace}${timeString})`;
-        } else { resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ ${result.error}</span>`; }
-    })
-    .catch(err => { resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ Ошибка сети: ${err.message}</span>`; });
-}
-
-function clearServerCache(event) {
-    event.preventDefault();
-    const panel = document.getElementById('cache-panel');
-    if (!panel) return;
-    const originalHTML = panel.innerHTML;
-    panel.innerHTML = '<span>⏳ Обновление базы данных городов...</span>';
-    fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'cors',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'clearCache' })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) { panel.innerHTML = '<span>✅ База успешно обновлена! Кэш сброшен.</span>'; setTimeout(() => { panel.innerHTML = originalHTML; }, 4000); } 
-        else { alert('Не удалось сбросить кэш: ' + result.error); panel.innerHTML = originalHTML; }
-    })
-    .catch(err => { alert('Ошибка сети: ' + err.message); panel.innerHTML = originalHTML; });
-}
-
-function clearAll() {
-    document.getElementById('lists-container').innerHTML = `
-        <div class="list-area"><label>Список 1</label><textarea class="city-input" placeholder="Вставьте список..."></textarea></div>
-        <div class="list-area"><label>Список 2</label><textarea class="city-input" placeholder="Вставьте список..."></textarea></div>
-    `;
-    listCount = 2;
-    document.getElementById('results').style.display = 'none';
-    document.getElementById('results-list').innerHTML = '';
-    if (document.getElementById('target-city')) document.getElementById('target-city').value = '';
-    if (document.getElementById('nearest-result')) document.getElementById('nearest-result').innerHTML = '';
-}
-
-function toggleTheme() {
-    const body = document.body; const btn = document.getElementById('theme-toggle');
-    body.classList.toggle('dark-mode');
-    if (body.classList.contains('dark-mode')) { btn.innerText = '☀️ Светлая тема'; localStorage.setItem('theme', 'dark'); } 
-    else { btn.innerText = '🌙 Темная тема'; localStorage.setItem('theme', 'light'); }
-}
-if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark-mode'); }
-window.addEventListener('DOMContentLoaded', () => {
-    if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-        const themeBtn = document.getElementById('theme-toggle');
-        if (themeBtn) themeBtn.innerText = '☀️ Светлая тема';
-    }
-});
-</script>
+        // 3. Проверка сохраненной темы при загрузке страницы
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('theme-icon').innerText = '☀️';
+            document.getElementById('theme-text').innerText = 'Светлая тема';
+        }
+    </script>
 </body>
 </html>
