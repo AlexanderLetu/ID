@@ -702,18 +702,88 @@ function copyText(elementId, buttonElement) {
     });
 }
 
-function findNearestStore() {
+// Функция последовательно запрашивает координаты для списка адресов
+async function fetchCoordinates(address) {
+    const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
+    const res = await fetch(url);
+    const response = await res.json();
+    return response.success ? response.data : null;
+}
+
+// Полностью автоматический поиск по всей России
+async function findNearestStore() {
     const userInput = document.getElementById('geo-search-input').value.trim();
     const output = document.getElementById('geo-result-output');
+    
     if (!userInput) { alert("Введите адрес доставки клиента"); return; }
-    
+
+    // 1. Сканируем экран и забираем ВСЕ города, которые выдал поиск
+    const cityElements = document.querySelectorAll('.result-city');
+    const citiesOnScreen = [];
+    cityElements.forEach(el => {
+        const name = el.innerText.trim();
+        if (!citiesOnScreen.includes(name)) citiesOnScreen.push(name);
+    });
+
+    if (citiesOnScreen.length === 0) {
+        output.style.color = '#ef4444';
+        output.innerHTML = "⚠️ Сначала вставьте списки и найдите совпадения магазинов.";
+        return;
+    }
+
     output.style.color = '#64748b';
-    output.innerHTML = "⏳ Вычисляю координаты и ищу ближайший склад...";
-    
-    setTimeout(() => {
-        output.style.color = '#ea580c';
-        output.innerHTML = `💡 Ближайшая точка: Москва (~84 км от ${userInput} местное время 21:05)`;
-    }, 1200);
+    output.innerHTML = `⏳ Спутник ищет координаты клиента и доступных городов...`;
+
+    try {
+        // 2. Определяем координаты глухой деревни клиента
+        const clientCoords = await fetchCoordinates(userInput);
+        if (!clientCoords) {
+            output.style.color = '#ef4444';
+            output.innerHTML = "❌ Google Maps не смог найти адрес клиента. Уточните область или район.";
+            return;
+        }
+
+        let minDistance = Infinity;
+        let nearestCity = "";
+        let nearestCityTz = 3;
+
+        // 3. Прямо на лету запрашиваем координаты для каждого города, который отображен на экране
+        for (let cityName of citiesOnScreen) {
+            // Очищаем «красивое» название города от приписок вроде (в пределах МКАД) для точности карт
+            const cleanCityName = cityName.replace(/\(.*?\)/g, '').trim();
+            const cityCoords = await fetchCoordinates(cleanCityName);
+            
+            if (cityCoords) {
+                // Считаем расстояние между деревней клиента и текущим городом-складом
+                const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityCoords.lat, cityCoords.lng);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestCity = cityName;
+                    nearestCityTz = cityCoords.tz;
+                }
+            }
+        }
+
+        // 4. Выводим результат и рассчитываем местное время региона склада
+        if (nearestCity) {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const localTimeOfCity = new Date(utc + (3600000 * nearestCityTz));
+            const hours = String(localTimeOfCity.getHours()).padStart(2, '0');
+            const minutes = String(localTimeOfCity.getMinutes()).padStart(2, '0');
+
+            output.style.color = '#ea580c';
+            output.innerHTML = `💡 Ближайшая точка: <strong>${nearestCity}</strong> (~${Math.round(minDistance)} км от ${userInput}, местное время склада <strong>${hours}:${minutes}</strong>)`;
+        } else {
+            output.style.color = '#ef4444';
+            output.innerHTML = "⚠️ Не удалось рассчитать расстояния до городов.";
+        }
+
+    } catch (err) {
+        output.style.color = '#ef4444';
+        output.innerHTML = "❌ Ошибка при динамическом расчете геоданных.";
+        console.error(err);
+    }
 }
 
 function resetAllForm() {
