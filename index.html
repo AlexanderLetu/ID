@@ -756,11 +756,10 @@ async function findNearestStore() {
 
         let minDistance = Infinity;
         let nearestCity = "";
-        let nearestCityTz = 3;
 
         // 3. Прямо на лету запрашиваем координаты для каждого города, который отображен на экране
         for (let cityName of citiesOnScreen) {
-            // Очищаем «красивое» название города от приписок вроде (в пределах МКАД) для точности карт
+            // Очищаем название города от приписок в скобках для точности карт
             const cleanCityName = cityName.replace(/\(.*?\)/g, '').trim();
             const cityCoords = await fetchCoordinates(cleanCityName);
             
@@ -770,10 +769,36 @@ async function findNearestStore() {
                 if (dist < minDistance) {
                     minDistance = dist;
                     nearestCity = cityName;
-                    nearestCityTz = cityCoords.tz;
                 }
             }
         }
+
+        // 4. Если ближайшая точка найдена, выводим результат и считаем время
+        if (nearestCity) {
+            // Берём часовой пояс из координат клиента, которые у нас железно есть
+            const tz = clientCoords.tz || 3; 
+            
+            // Расчет местного времени
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const localTimeOfCity = new Date(utc + (3600000 * tz));
+            
+            const hours = String(localTimeOfCity.getHours()).padStart(2, '0');
+            const minutes = String(localTimeOfCity.getMinutes()).padStart(2, '0');
+
+            output.style.color = '#ea580c';
+            output.innerHTML = `💡 Ближайшая точка: <strong>${nearestCity}</strong> (~${Math.round(minDistance)} км от ${userInput}, местное время склада <strong>${hours}:${minutes}</strong>)`;
+        } else {
+            output.style.color = '#ef4444';
+            output.innerHTML = "⚠️ Не удалось рассчитать расстояния до городов.";
+        }
+
+    } catch (err) {
+        output.style.color = '#ef4444';
+        output.innerHTML = "❌ Ошибка при динамическом расчете геоданных.";
+        console.error(err);
+    }
+}
 
         // 4. Выводим результат и рассчитываем местное время региона склада
         if (nearestCity) {
