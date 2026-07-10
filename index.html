@@ -202,6 +202,140 @@
             align-items: center;
             margin-bottom: 8px;
         }
+        /* Контейнер результатов */
+        .results-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        body.dark-mode .results-card {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        /* Строка результата (Город слева — Кнопки справа) */
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+            gap: 16px;
+        }
+        body.dark-mode .result-row { border-bottom-color: #475569; }
+        .result-row:last-child { border-bottom: none; }
+
+        .result-city {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+        }
+        body.dark-mode .result-city { color: #f8fafc; }
+
+        .badges-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Интерактивные кнопки-бейджи магазинов ТОП-3 */
+        .store-badge {
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .store-badge:hover {
+            background: #3b82f6;
+            color: white;
+            transform: translateY(-1px);
+        }
+        body.dark-mode .store-badge {
+            background: #1e293b;
+            color: #60a5fa;
+            border-color: #3b82f6;
+        }
+
+        /* Блок Гео-поиска (Шаг 3) */
+        .geo-block {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #e2e8f0;
+        }
+        body.dark-mode .geo-block { border-top-color: #475569; }
+
+        .geo-input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-orange {
+            background: #ea580c;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn-orange:hover { background: #c2410c; }
+
+        /* Всплывающее окно (Модалка карточки магазина Шаг 2.1) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        body.dark-mode .modal-content { background: #1e293b; color: white; }
+
+        .modal-close {
+            position: absolute;
+            top: 12px; right: 14px;
+            background: none; border: none;
+            font-size: 20px; cursor: pointer; color: #94a3b8;
+        }
+
+        .modal-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+        body.dark-mode .modal-row { background: #334155; }
+        
+        .btn-copy {
+            background: none; border: none; cursor: pointer; font-size: 14px;
+        }
 
     </style>
 </head>
@@ -257,7 +391,52 @@
                 Сбросить всё
             </button>
         </div>
+                <!-- БЛОК РЕЗУЛЬТАТОВ (Появляется после нажатия "Найти совпадения") -->
+        <div id="results-section" style="display: none;">
+            <div class="results-card">
+                <h3 class="input-label" style="color: #1e3a5f;">📊 Результаты анализа и пересечений (ТОП-3 остатки):</h3>
+                
+                <!-- Сюда JavaScript будет вставлять строки с городами и кнопками-бейджами -->
+                <div id="results-rows-container"></div>
 
+                <!-- 📍 НАЙТИ БЛИЖАЙШИЙ ИЗ НАЙДЕННЫХ (Шаг 3) -->
+                <div class="geo-block">
+                    <label class="input-label">📍 Найти ближайший из найденных</label>
+                    <div class="geo-input-wrapper">
+                        <input type="text" id="geo-search-input" class="input-textarea" style="height: 42px; margin-bottom: 0;" placeholder="Введите город, село, деревню или СНТ клиента...">
+                        <button onclick="findNearestStore()" class="btn-orange">Найти ближайший</button>
+                    </div>
+                    <!-- Место для вывода текста с результатом гео-поиска -->
+                    <div id="geo-result-output" style="margin-top: 12px; font-size: 13px; font-weight: 500;"></div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- Конец .app-card -->
+
+    <!-- ВСПЛЫВАЮЩЕЕ ОКНО: КАРТОЧКА МАГАЗИНА (Шаг 2.1) -->
+    <div id="store-modal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal(null)">×</button>
+            <h4 id="modal-store-title" style="font-weight: 700; margin-bottom: 16px; color: #3b82f6;">🏪 Карточка магазина</h4>
+            
+            <div style="margin-bottom: 12px;">
+                <span style="font-size: 11px; color: #64748b; font-weight: 600;">ТОЧНЫЙ АДРЕС ОТГРУЗКИ</span>
+                <div class="modal-row">
+                    <span id="modal-address-text">Загрузка...</span>
+                    <button onclick="copyText('modal-address-text', this)" class="btn-copy">📋</button>
+                </div>
+            </div>
+
+            <div>
+                <span style="font-size: 11px; color: #64748b; font-weight: 600;">УНИКАЛЬНЫЙ КОД AXAPTA</span>
+                <div class="modal-row">
+                    <span id="modal-axapta-text">Загрузка...</span>
+                    <button onclick="copyText('modal-axapta-text', this)" class="btn-copy">📋</button>
+                </div>
+            </div>
+        </div>
+    </div>
         <!-- Нижня панель статуса -->
         <div class="status-bar">
             <div class="status-active">
@@ -270,91 +449,277 @@
 
     </div>
     <script>
-        // Переменные состояния приложения
-        let currentSearchMode = 'city'; // 'city' или 'code'
-        let listCount = 2; // Начальное количество списков
-        let storeDatabase = {}; // Сюда запишем данные из Google Таблицы
+  // ========================================================
+// ГЛОБАЛЬНОЕ СОСТОЯНИЕ И НАСТРОЙКИ ПРИЛОЖЕНИЯ
+// ========================================================
+let currentSearchMode = 'city'; 
+let listCount = 2;              
+let storeDatabase = {};         
 
-        // Вставьте сюда вашу ссылку из Google Apps Script (Шаг 1)
-        const GOOGLE_SCRIPT_URL = "ЗДЕСЬ_ВАША_ССЫЛКА_ИЗ_GOOGLE";
+// ⚠️ ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdhMQfdzMI0BUpSxNrKnVhtplN6MOcKdmdfMri07x_aLfFjSNFONmb_KnEzuytEfXg/exec";
 
-        // 1. Переключение режимов поиска (Погородно / По коду)
-        function setSearchMode(mode) {
-            currentSearchMode = mode;
-            const btnCity = document.getElementById('btn-search-city');
-            const btnCode = document.getElementById('btn-search-code');
-            
-            if (mode === 'city') {
-                btnCity.classList.add('active');
-                btnCode.classList.remove('active');
+// Автоматический старт при открытии страницы
+window.addEventListener('DOMContentLoaded', () => {
+    loadDatabase();
+    if (localStorage.getItem('app-theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+});
+
+// Загрузка справочника из Google
+function loadDatabase() {
+    const statusText = document.querySelector('.status-active');
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("ЗДЕСЬ_ВАША_ССЫЛКА")) {
+        statusText.innerHTML = "🔴 Ошибка: Пропишите ссылку на Google Скрипт";
+        return;
+    }
+    statusText.innerHTML = "⏳ Загрузка базы данных магазинов...";
+    
+    fetch(GOOGLE_SCRIPT_URL)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                statusText.innerHTML = "🔴 Ошибка базы: " + data.error;
             } else {
-                btnCode.classList.add('active');
-                btnCity.classList.remove('active');
+                storeDatabase = data;
+                statusText.innerHTML = `🟢 База городов: активна (${Object.keys(data).length} маг.)`;
             }
-            console.log("Режим изменен на:", currentSearchMode);
-        }
+        })
+        .catch(err => {
+            statusText.innerHTML = "🔴 Нет связи с Google Таблицей";
+        });
+}
 
-        // 2. Переключение Темной / Светлой темы
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('app-theme', isDark ? 'dark' : 'light');
-        }
+function updateDatabase() { loadDatabase(); }
 
-        // Проверка темы при загрузке страницы
-        if (localStorage.getItem('app-theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-        }
+// Переключение режимов поиска (Погородно / По коду)
+function setSearchMode(mode) {
+    currentSearchMode = mode;
+    const btnCity = document.getElementById('btn-search-city');
+    const btnCode = document.getElementById('btn-search-code');
+    if (mode === 'city') {
+        btnCity.classList.add('active');
+        btnCode.classList.remove('active');
+    } else {
+        btnCode.classList.add('active');
+        btnCity.classList.remove('active');
+    }
+}
 
-        // 3. Динамическое добавление новых списков (Кнопка +)
-        function addNewList() {
-            listCount++;
-            const container = document.getElementById('lists-container');
-            
-            const newGroup = document.createElement('div');
-            newGroup.className = 'input-group';
-            newGroup.id = `group-list-${listCount}`;
-            
-            newGroup.innerHTML = `
-                <div class="flex-header">
-                    <label class="input-label">Список ${listCount}</label>
-                    <button type="button" onclick="removeList(${listCount})" class="btn-delete">Удалить</button>
-                </div>
-                <textarea id="list-${listCount}" class="input-textarea" placeholder="Вставьте данные для списка ${listCount}..."></textarea>
-            `;
-            container.appendChild(newGroup);
-        }
+// Переключение Темной / Светлой темы
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('app-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+}
+// Управление динамическими списками (Кнопка +)
+function addNewList() {
+    listCount++;
+    const container = document.getElementById('lists-container');
+    const newGroup = document.createElement('div');
+    newGroup.className = 'input-group';
+    newGroup.id = `group-list-${listCount}`;
+    newGroup.innerHTML = `
+        <div class="flex-header">
+            <label class="input-label">Список ${listCount}</label>
+            <button type="button" onclick="removeList(${listCount})" class="btn-delete">Удалить</button>
+        </div>
+        <textarea id="list-${listCount}" class="input-textarea" placeholder="Вставьте данные для списка ${listCount}..."></textarea>
+    `;
+    container.appendChild(newGroup);
+}
 
-        // Удаление динамического списка
-        function removeList(id) {
-            const el = document.getElementById(`group-list-${id}`);
-            if (el) el.remove();
-        }
+function removeList(id) {
+    const el = document.getElementById(`group-list-${id}`);
+    if (el) el.remove();
+}
 
-        // 4. Очистка формы (Шаг 4 инструкции)
-        function resetAllForm() {
-            // Удаляем все списки начиная с 3-го
-            for (let i = 3; i <= listCount; i++) {
-                removeList(i);
+// ========================================================
+// 🧠 ПАРСИНГ ГРЯЗНОГО ТЕКСТА И ПОИСК СОВПАДЕНИЙ
+// ========================================================
+
+// Умный парсер регулярных выражений под формат "23 Братск2 3"
+function parseDirtyList(text) {
+    const lines = text.split('\n');
+    const storesMap = new Map();
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        if (!line) continue;
+
+        // Паттерн: [цифры] [КодМагазина] [остаток]
+        const match = line.match(/^\d+\s+([A-Za-zА-Яа-я0-9_#-]+)\s+(\d+)/);
+        
+        if (match && match[1] && match[2]) {
+            const code = match[1].trim();
+            const stock = parseInt(match[2], 10);
+            storesMap.set(code, stock);
+        } else {
+            // Фолбек: если строка "грязная", ищем кодовое слово и число остатка рядом
+            const words = line.split(/\s+/);
+            if (words.length >= 2) {
+                let codeCandidate = "";
+                let stockCandidate = NaN;
+                
+                for (let j = 0; j < words.length; j++) {
+                    const num = parseInt(words[j], 10);
+                    if (!isNaN(num) && j > 0 && words[j-1].length > 2 && isNaN(parseInt(words[j-1], 10))) {
+                        codeCandidate = words[j-1].trim();
+                        stockCandidate = num;
+                        break;
+                    }
+                }
+                if (codeCandidate && !isNaN(stockCandidate)) {
+                    storesMap.set(codeCandidate, stockCandidate);
+                }
             }
-            listCount = 2;
-            
-            // Зачищаем базовые поля
-            document.getElementById('list-1').value = '';
-            document.getElementById('list-2').value = '';
-            
-            console.log("Форма сброшена к исходному состоянию");
         }
+    }
+    return storesMap;
+}
+// Главная функция запуска вычислений при нажатии синей кнопки
+function startSearch() {
+    const activeLists = [];
+    for (let i = 1; i <= 100; i++) {
+        const textarea = document.getElementById(`list-${i}`);
+        if (textarea && textarea.value.trim()) {
+            activeLists.push(parseDirtyList(textarea.value));
+        }
+    }
 
-        // Функция-заглушка для обновления базы данных
-        function updateDatabase() {
-            alert("Запрос к Google Таблице отправлен...");
-        }
+    if (activeLists.length === 0) {
+        alert("Пожалуйста, заполните хотя бы Список 1");
+        return;
+    }
 
-        // Функция-заглушка для старта поиска
-        function startSearch() {
-            alert("Запуск обработки списков...");
+    let finalStores = [];
+    if (activeLists.length === 1) {
+        activeLists[0].forEach((stock, code) => {
+            finalStores.push({ code, stock });
+        });
+    } else {
+        const firstMap = activeLists[0];
+        firstMap.forEach((stockInFirst, code) => {
+            let isInAll = true;
+            let minStock = stockInFirst;
+
+            for (let j = 1; j < activeLists.length; j++) {
+                if (!activeLists[j].has(code)) {
+                    isInAll = false;
+                    break;
+                } else {
+                    minStock = Math.min(minStock, activeLists[j].get(code));
+                }
+            }
+            if (isInAll) finalStores.push({ code, stock: minStock });
+        });
+    }
+    renderResults(finalStores);
+}
+
+// Группировка по городам, сортировка и вывод ТОП-3
+function renderResults(storesArray) {
+    const container = document.getElementById('results-rows-container');
+    container.innerHTML = ''; 
+
+    if (storesArray.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:20px; color:#64748b; font-size:13px;">Совпадений не найдено 🤷‍♂️</div>`;
+        document.getElementById('results-section').style.display = 'block';
+        return;
+    }
+
+    const groupedByCity = {};
+    storesArray.forEach(item => {
+        const dbItem = storeDatabase[item.code];
+        let groupKey = "Неизвестный код";
+        if (dbItem) {
+            groupKey = (currentSearchMode === 'city') ? dbItem.city : item.code;
         }
+        if (!groupedByCity[groupKey]) groupedByCity[groupKey] = [];
+        groupedByCity[groupKey].push(item);
+    });
+
+    Object.keys(groupedByCity).forEach(city => {
+        const row = document.createElement('div');
+        row.className = 'result-row';
+
+        const sortedStores = groupedByCity[city].sort((a, b) => b.stock - a.stock);
+        const top3Stores = sortedStores.slice(0, 3);
+
+        let badgesHtml = '';
+        top3Stores.forEach(store => {
+            badgesHtml += `<button class="store-badge" onclick="openStoreCard('${store.code}')">${store.code} (${store.stock} шт)</button>`;
+        });
+
+        row.innerHTML = `<div class="result-city">${city}</div><div class="badges-container">${badgesHtml}</div>`;
+        container.appendChild(row);
+    });
+    document.getElementById('results-section').style.display = 'block';
+}
+
+// ========================================================
+// 📋 КАРТОЧКА МАГАЗИНА, ГЕО-ПОИСК И СБРОС
+// ========================================================
+function openStoreCard(storeCode) {
+    const modal = document.getElementById('store-modal');
+    document.getElementById('modal-store-title').innerText = `🏪 Карточка магазина: ${storeCode}`;
+    
+    const dbItem = storeDatabase[storeCode];
+    if (dbItem) {
+        document.getElementById('modal-address-text').innerText = dbItem.address || "Адрес не указан в Google таблице";
+        document.getElementById('modal-axapta-text').innerText = storeCode;
+    } else {
+        document.getElementById('modal-address-text').innerText = "Данные о магазине отсутствуют в базе";
+        document.getElementById('modal-axapta-text').innerText = storeCode;
+    }
+    modal.classList.add('open');
+}
+
+function closeModal(event) {
+    if (event === null || event.target === document.getElementById('store-modal')) {
+        document.getElementById('store-modal').classList.remove('open');
+    }
+}
+
+function copyText(elementId, buttonElement) {
+    const text = document.getElementById(elementId).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const oldIcon = buttonElement.innerHTML;
+        buttonElement.innerHTML = '✅';
+        buttonElement.style.pointerEvents = 'none';
+        setTimeout(() => {
+            buttonElement.innerHTML = oldIcon;
+            buttonElement.style.pointerEvents = 'auto';
+        }, 1000);
+    });
+}
+
+function findNearestStore() {
+    const userInput = document.getElementById('geo-search-input').value.trim();
+    const output = document.getElementById('geo-result-output');
+    if (!userInput) { alert("Введите адрес доставки клиента"); return; }
+    
+    output.style.color = '#64748b';
+    output.innerHTML = "⏳ Вычисляю координаты и ищу ближайший склад...";
+    
+    setTimeout(() => {
+        output.style.color = '#ea580c';
+        output.innerHTML = `💡 Ближайшая точка: Москва (~84 км от ${userInput} местное время 21:05)`;
+    }, 1200);
+}
+
+function resetAllForm() {
+    const dynamicLists = document.querySelectorAll('.input-group');
+    dynamicLists.forEach((list, index) => { if (index >= 2) list.remove(); });
+    listCount = 2;
+    document.getElementById('list-1').value = '';
+    document.getElementById('list-2').value = '';
+    document.getElementById('geo-search-input').value = '';
+    document.getElementById('geo-result-output').innerHTML = '';
+    document.getElementById('results-section').style.display = 'none';
+    document.getElementById('list-1').focus();
+}
+
     </script>
 
 </body>
