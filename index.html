@@ -449,20 +449,9 @@
 
     </div>
     <script>
-// Математическая формула гаверсинусов для расчета километров на стороне сайта
-function calculateDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371; // Радиус Земли в километрах
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-              
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Расстояние в километрах
-}
-
+// ========================================================
+// ГЛОБАЛЬНОЕ СОСТОЯНИЕ И НАСТРОЙКИ ПРИЛОЖЕНИЯ
+// ========================================================
 let currentSearchMode = 'city'; 
 let listCount = 2;              
 let storeDatabase = {};         
@@ -470,7 +459,6 @@ let storeDatabase = {};
 // ⚠️ ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdhMQfdzMI0BUpSxNrKnVhtplN6MOcKdmdfMri07x_aLfFjSNFONmb_KnEzuytEfXg/exec";
 
-// Автоматический старт при открытии страницы
 window.addEventListener('DOMContentLoaded', () => {
     loadDatabase();
     if (localStorage.getItem('app-theme') === 'dark') {
@@ -478,10 +466,9 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Загрузка справочника из Google
 function loadDatabase() {
     const statusText = document.querySelector('.status-active');
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("ЗДЕСЬ_ВАША_ССЫЛКА")) {
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbwdhMQfdzMI0BUpSxNrKnVhtplN6MOcKdmdfMri07x_aLfFjSNFONmb_KnEzuytEfXg/exec")) {
         statusText.innerHTML = "🔴 Ошибка: Пропишите ссылку на Google Скрипт";
         return;
     }
@@ -504,7 +491,6 @@ function loadDatabase() {
 
 function updateDatabase() { loadDatabase(); }
 
-// Переключение режимов поиска (Погородно / По коду)
 function setSearchMode(mode) {
     currentSearchMode = mode;
     const btnCity = document.getElementById('btn-search-city');
@@ -518,12 +504,11 @@ function setSearchMode(mode) {
     }
 }
 
-// Переключение Темной / Светлой темы
 function toggleTheme() {
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('app-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
 }
-// Управление динамическими списками (Кнопка +)
+
 function addNewList() {
     listCount++;
     const container = document.getElementById('lists-container');
@@ -545,49 +530,37 @@ function removeList(id) {
     if (el) el.remove();
 }
 
-// ========================================================
-// 🧠 ПАРСИНГ ГРЯЗНОГО ТЕКСТА И ПОИСК СОВПАДЕНИЙ
-// ========================================================
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
 
 function parseDirtyList(text) {
     const lines = text.split('\n');
     const storesMap = new Map();
-
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i].trim();
         if (!line) continue;
-
-        // Строгий паттерн для первой строки: [номер] [КодМагазина] [остаток]
-        // ^\d+ (номер строки в начале) -> пробелы -> ([A-Za-zА-Яа-я0-9_#-]+) (код магазина) -> пробелы -> (\d+)$ (остаток строго в конце строки!)
         const strictMatch = line.match(/^\d+\s+([A-Za-zА-Яа-я0-9_#-]+)\s+(\d+)$/);
-        
         if (strictMatch) {
             const code = strictMatch[1].trim();
             const stock = parseInt(strictMatch[2], 10);
-            
-            // Защита от мусора: если "код" состоит только из цифр и он короткий, это не код магазина
-            if (/^\d+$/.test(code) && code.length <= 3) {
-                continue; 
-            }
-            
+            if (/^\d+$/.test(code) && code.length <= 3) continue; 
             storesMap.set(code, stock);
-            continue; // Строка успешно обработана, переходим к следующей
+            continue;
         }
-
-        // Если строка не подошла под строгий паттерн, проверяем, вдруг это строка адреса
-        // Строки адреса обычно содержат слова "обл.", "г.", "ул.", "дом", "д." или запятые. Их мы просто пропускаем.
-        if (line.includes(',') || line.includes('ул.') || line.includes('г.') || line.includes('обл.')) {
-            continue; 
-        }
-
-        // Запасной "всеядный" вариант только для строк, похожих на "Номер Код Остаток", если в конце затесался пробел
+        if (line.includes(',') || line.includes('ул.') || line.includes('г.') || line.includes('обл.')) continue; 
         const words = line.split(/\s+/);
         if (words.length >= 3) {
             const firstWordNum = parseInt(words[0], 10);
             const lastWordNum = parseInt(words[words.length - 1], 10);
             const middleWord = words[1].replace(/[,.]/g, '').trim();
-
-            // Если первое слово — число (номер строки), последнее — число (остаток), а в середине код
             if (!isNaN(firstWordNum) && !isNaN(lastWordNum) && middleWord.length > 2 && isNaN(parseInt(middleWord, 10))) {
                 storesMap.set(middleWord, lastWordNum);
             }
@@ -595,7 +568,6 @@ function parseDirtyList(text) {
     }
     return storesMap;
 }
-
 // Главная функция запуска вычислений при нажатии синей кнопки
 function startSearch() {
     const activeLists = [];
@@ -676,9 +648,7 @@ function renderResults(storesArray) {
     document.getElementById('results-section').style.display = 'block';
 }
 
-// ========================================================
-// 📋 КАРТОЧКА МАГАЗИНА, ГЕО-ПОИСК И СБРОС
-// ========================================================
+// Карточка магазина и копирование
 function openStoreCard(storeCode) {
     const modal = document.getElementById('store-modal');
     document.getElementById('modal-store-title').innerText = `🏪 Карточка магазина: ${storeCode}`;
@@ -713,7 +683,7 @@ function copyText(elementId, buttonElement) {
     });
 }
 
-// Функция последовательно запрашивает координаты для списка адресов
+// Динамический гео-поиск координат через бэкенд
 async function fetchCoordinates(address) {
     const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
     const res = await fetch(url);
@@ -728,7 +698,6 @@ async function findNearestStore() {
     
     if (!userInput) { alert("Введите адрес доставки клиента"); return; }
 
-    // 1. Сканируем экран и забираем ВСЕ города, которые выдал поиск
     const cityElements = document.querySelectorAll('.result-city');
     const citiesOnScreen = [];
     cityElements.forEach(el => {
@@ -746,7 +715,6 @@ async function findNearestStore() {
     output.innerHTML = `⏳ Спутник ищет координаты клиента и доступных городов...`;
 
     try {
-        // 2. Определяем координаты глухой деревни клиента
         const clientCoords = await fetchCoordinates(userInput);
         if (!clientCoords) {
             output.style.color = '#ef4444';
@@ -757,14 +725,11 @@ async function findNearestStore() {
         let minDistance = Infinity;
         let nearestCity = "";
 
-        // 3. Прямо на лету запрашиваем координаты для каждого города, который отображен на экране
         for (let cityName of citiesOnScreen) {
-            // Очищаем название города от приписок в скобках для точности карт
             const cleanCityName = cityName.replace(/\(.*?\)/g, '').trim();
             const cityCoords = await fetchCoordinates(cleanCityName);
             
             if (cityCoords) {
-                // Считаем расстояние между деревней клиента и текущим городом-складом
                 const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityCoords.lat, cityCoords.lng);
                 if (dist < minDistance) {
                     minDistance = dist;
@@ -773,12 +738,8 @@ async function findNearestStore() {
             }
         }
 
-        // 4. Если ближайшая точка найдена, выводим результат и считаем время
         if (nearestCity) {
-            // Берём часовой пояс из координат клиента, которые у нас железно есть
             const tz = clientCoords.tz || 3; 
-            
-            // Расчет местного времени
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
             const localTimeOfCity = new Date(utc + (3600000 * tz));
@@ -800,28 +761,7 @@ async function findNearestStore() {
     }
 }
 
-        // 4. Выводим результат и рассчитываем местное время региона склада
-        if (nearestCity) {
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const localTimeOfCity = new Date(utc + (3600000 * nearestCityTz));
-            const hours = String(localTimeOfCity.getHours()).padStart(2, '0');
-            const minutes = String(localTimeOfCity.getMinutes()).padStart(2, '0');
-
-            output.style.color = '#ea580c';
-            output.innerHTML = `💡 Ближайшая точка: <strong>${nearestCity}</strong> (~${Math.round(minDistance)} км от ${userInput}, местное время склада <strong>${hours}:${minutes}</strong>)`;
-        } else {
-            output.style.color = '#ef4444';
-            output.innerHTML = "⚠️ Не удалось рассчитать расстояния до городов.";
-        }
-
-    } catch (err) {
-        output.style.color = '#ef4444';
-        output.innerHTML = "❌ Ошибка при динамическом расчете геоданных.";
-        console.error(err);
-    }
-}
-
+// Очистка формы
 function resetAllForm() {
     const dynamicLists = document.querySelectorAll('.input-group');
     dynamicLists.forEach((list, index) => { if (index >= 2) list.remove(); });
