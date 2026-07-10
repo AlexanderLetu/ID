@@ -452,26 +452,39 @@
 // ========================================================
 // ГЛОБАЛЬНОЕ СОСТОЯНИЕ И НАСТРОЙКИ ПРИЛОЖЕНИЯ
 // ========================================================
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdhMQfdzMI0BUpSxNrKnVhtplN6MOcKdmdfMri07x_aLfFjSNFONmb_KnEzuytEfXg/exec";
+
 let currentSearchMode = 'city'; 
 let listCount = 2;              
 let storeDatabase = {};         
 
-// ⚠️ ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdhMQfdzMI0BUpSxNrKnVhtplN6MOcKdmdfMri07x_aLfFjSNFONmb_KnEzuytEfXg/exec";
-
-window.addEventListener('DOMContentLoaded', () => {
-    loadDatabase();
-    if (localStorage.getItem('app-theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-});
-
 function loadDatabase() {
     const statusText = document.querySelector('.status-active');
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbwdhMQfdzMI0BUpSxNrKnVhtplN6MOcKdmdfMri07x_aLfFjSNFONmb_KnEzuytEfXg/exec")) {
+    
+    // ТЕПЕРЬ ПРОВЕРКА ПРАВИЛЬНАЯ: проверяем только на пустоту или на дефолтный текст
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("ЗДЕСЬ_ВАША_ССЫЛКА")) {
         statusText.innerHTML = "🔴 Ошибка: Пропишите ссылку на Google Скрипт";
         return;
     }
+    
+    statusText.innerHTML = "⏳ Загрузка базы данных магазинов...";
+    
+    fetch(GOOGLE_SCRIPT_URL)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                statusText.innerHTML = "🔴 Ошибка базы: " + data.error;
+            } else {
+                storeDatabase = data;
+                statusText.innerHTML = `🟢 База городов: активна (${Object.keys(data).length} маг.)`;
+            }
+        })
+        .catch(err => {
+            statusText.innerHTML = "🔴 Нет связи с Google Таблицей";
+            console.error(err);
+        });
+}
+
     statusText.innerHTML = "⏳ Загрузка базы данных магазинов...";
     
     fetch(GOOGLE_SCRIPT_URL)
