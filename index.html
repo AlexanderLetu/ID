@@ -546,41 +546,40 @@ function parseDirtyList(text) {
         let line = lines[i].trim();
         if (!line) continue;
 
-        // Ищем внутри строки ЛЮБОЕ слово, которое состоит из букв и заканчивается цифрой (это код магазина)
-        // И отдельно ищем цифру остатка, которая обычно идет сразу после номера строки или в начале
+        // Строгий паттерн для первой строки: [номер] [КодМагазина] [остаток]
+        // ^\d+ (номер строки в начале) -> пробелы -> ([A-Za-zА-Яа-я0-9_#-]+) (код магазина) -> пробелы -> (\d+)$ (остаток строго в конце строки!)
+        const strictMatch = line.match(/^\d+\s+([A-Za-zА-Яа-я0-9_#-]+)\s+(\d+)$/);
+        
+        if (strictMatch) {
+            const code = strictMatch[1].trim();
+            const stock = parseInt(strictMatch[2], 10);
+            
+            // Защита от мусора: если "код" состоит только из цифр и он короткий, это не код магазина
+            if (/^\d+$/.test(code) && code.length <= 3) {
+                continue; 
+            }
+            
+            storesMap.set(code, stock);
+            continue; // Строка успешно обработана, переходим к следующей
+        }
+
+        // Если строка не подошла под строгий паттерн, проверяем, вдруг это строка адреса
+        // Строки адреса обычно содержат слова "обл.", "г.", "ул.", "дом", "д." или запятые. Их мы просто пропускаем.
+        if (line.includes(',') || line.includes('ул.') || line.includes('г.') || line.includes('обл.')) {
+            continue; 
+        }
+
+        // Запасной "всеядный" вариант только для строк, похожих на "Номер Код Остаток", если в конце затесался пробел
         const words = line.split(/\s+/);
-        
-        let foundCode = "";
-        let foundStock = NaN;
-
-        // 1. Ищем код магазина (Паттерн: Буквы + Цифры на конце, например Братск2, Дзержнск2)
-        for (let word of words) {
-            // Очищаем слово от запятых и точек
-            const cleanWord = word.replace(/[,.]/g, '').trim();
-            if (/^[A-Za-zА-Яа-я0-9_#-]+\d+$/.test(cleanWord)) {
-                foundCode = cleanWord;
-                break;
-            }
-        }
-
-        // 2. Ищем остаток товара (первое число после номера строки, либо логическое число остатка)
-        // Для примера "39 Дзержнск2 2" -> 39 это строка, Дзержнск2 код, 2 это остаток
         if (words.length >= 3) {
-            const stockCheck = parseInt(words[2], 10);
-            if (!isNaN(stockCheck)) {
-                foundStock = stockCheck;
-            }
-        }
-        
-        // Если стандартным путем остаток не нашелся, берем последнее число в первой части строки
-        if (isNaN(foundStock) && words.length >= 2) {
-            const stockCheck = parseInt(words[1], 10);
-            if (!isNaN(stockCheck)) foundStock = stockCheck;
-        }
+            const firstWordNum = parseInt(words[0], 10);
+            const lastWordNum = parseInt(words[words.length - 1], 10);
+            const middleWord = words[1].replace(/[,.]/g, '').trim();
 
-        // Если нашли и код, и остаток — сохраняем
-        if (foundCode && !isNaN(foundStock)) {
-            storesMap.set(foundCode, foundStock);
+            // Если первое слово — число (номер строки), последнее — число (остаток), а в середине код
+            if (!isNaN(firstWordNum) && !isNaN(lastWordNum) && middleWord.length > 2 && isNaN(parseInt(middleWord, 10))) {
+                storesMap.set(middleWord, lastWordNum);
+            }
         }
     }
     return storesMap;
