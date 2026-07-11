@@ -364,6 +364,16 @@
         /* Поддержка темной темы для верхнего статуса */
         body.dark-mode .status-bar-top { color: #94a3b8; }
         body.dark-mode .status-refresh-btn { color: #60a5fa; }
+                /* Цвет заголовка результатов по умолчанию для светлой темы */
+        .results-title {
+            color: #1e3a5f !important;
+        }
+
+        /* Цвет заголовка для тёмной темы (светло-голубой, контрастный) */
+        body.dark-mode .results-title {
+            color: #60a5fa !important;
+        }
+
     </style>
 </head>
 <body>
@@ -424,7 +434,7 @@
                 <!-- БЛОК РЕЗУЛЬТАТОВ (Появляется после нажатия "Найти совпадения") -->
         <div id="results-section" style="display: none;">
             <div class="results-card">
-                <h3 class="input-label" style="color: #1e3a5f;">📊 Результаты анализа и пересечений (ТОП-3 остатки):</h3>
+                <h3 class="input-label results-title">📊 Результаты анализа и пересечений (ТОП-3 остатки):</h3>
                 
                 <!-- Сюда JavaScript будет вставлять строки с городами и кнопками-бейджами -->
                 <div id="results-rows-container"></div>
