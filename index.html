@@ -909,10 +909,17 @@ function copyText(elementId, buttonElement) {
 
 // Динамический поиск координат через бэкенд Google Карт
 async function fetchCoordinates(address) {
+    // Кодируем адрес, чтобы пробелы и спецсимволы не ломали URL-строку
     const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
-    const res = await fetch(url);
-    const response = await res.json();
-    return response.success ? response.data : null;
+    try {
+        const res = await fetch(url);
+        const response = await res.json();
+        // Возвращаем данные, только если бэкенд прислал success: true
+        return (response && response.success) ? response.data : null;
+    } catch (e) {
+        console.error("Ошибка fetchCoordinates:", e);
+        return null;
+    }
 }
 
 // Гибридный поиск: Города берутся из памяти, редкие деревни/ПГТ пробиваются через онлайн-бэкенд Google
