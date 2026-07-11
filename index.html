@@ -343,7 +343,10 @@
 
     <!-- Главная белая карточка приложения -->
     <div class="app-card">
-        
+        <div class="status-bar-top">
+            <span class="status-active">🟢 База городов: активна...</span>
+            <span class="status-refresh-btn" onclick="updateDatabase()">🔄 Обновить базу сейчас</span>
+        </div>
         <!-- Заголовок сайта -->
         <h1 class="app-title">📍 Инструмент поиска пересечений и ближайшего города</h1>
         
@@ -437,16 +440,6 @@
             </div>
         </div>
     </div>
-        <!-- Нижня панель статуса -->
-        <div class="status-bar">
-            <div class="status-active">
-                🟢 База городов: активна (изм 6 часов)
-            </div>
-            <div style="color: #3b82f6; cursor: pointer;" onclick="updateDatabase()">
-                🔄 Обновить базу сейчас
-            </div>
-        </div>
-
     </div>
     <script>
 // ========================================================
