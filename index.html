@@ -432,12 +432,13 @@
             ➕ Добавить список
         </button>
         <!-- 🔢 Фильтр по минимальному количеству товара -->
-        <div class="input-group" style="margin-bottom: 16px;">
-            <label class="input-label" style="display: flex; align-items: center; gap: 6px;">
-                🔢 Требуемое количество товара (не обязательно)
-            </label>
-            <input type="number" id="min-stock-filter" class="input-textarea" style="height: 42px; margin-bottom: 0;" placeholder="Например: 5 или 6 (если пусто — выведет любые остатки)" min="1">
-        </div>
+<!-- 🔢 Фильтр по минимальному количеству товара -->
+<div class="input-group" style="margin-bottom: 16px;">
+    <label class="input-label" style="display: flex; align-items: center; gap: 6px;">
+        🔢 Требуемое количество товара (не обязательно)
+    </label>
+    <input type="number" id="min-stock-filter" class="input-textarea" style="height: 42px; margin-bottom: 0;" placeholder="Например: 5 или 6 (если пусто — выведет любые остатки)" min="1">
+</div>
         <!-- Основные кнопки действий -->
         <div class="actions-panel">
             <button onclick="startSearch()" class="btn-main btn-primary">
@@ -1117,19 +1118,25 @@ async function findNearestStore() {
 
 function resetAllForm() {
     const dynamicLists = document.querySelectorAll('.input-group');
+    // Оставляем только первые два списка
     dynamicLists.forEach((list, index) => { if (index >= 2) list.remove(); });
     listCount = 2;
+    
     document.getElementById('list-1').value = '';
     document.getElementById('list-2').value = '';
     
-    // ВОТ ЭТА СТРОЧКА: Очищаем новое поле лимита товара
-    document.getElementById('min-stock-filter').value = '';
+    // ИСПРАВЛЕНО: Безопасное обнуление фильтра количества с проверкой на null
+    const minStockInput = document.getElementById('min-stock-filter');
+    if (minStockInput) {
+        minStockInput.value = '';
+    }
     
     document.getElementById('geo-search-input').value = '';
     document.getElementById('geo-result-output').innerHTML = '';
     document.getElementById('results-section').style.display = 'none';
     document.getElementById('list-1').focus();
 }
+
     </script>
 
 </body>
