@@ -1020,7 +1020,8 @@ async function findNearestStore() {
 
         // 4. ВЫВОД РЕЗУЛЬТАТА И ВРЕМЕНИ КЛИЕНТА
         if (nearestCity) {
-            const clientTz = clientCoords.tz || 3; 
+            // ИСПРАВЛЕНО: Забираем часовой пояс из объекта внутри массива
+            const clientTz = (clientCoords && clientCoords[0]) ? (clientCoords[0].tz || 3) : 3;
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
             const localTimeOfClient = new Date(utc + (3600000 * clientTz));
