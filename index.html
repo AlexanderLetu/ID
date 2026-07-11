@@ -966,9 +966,7 @@ async function findNearestStore() {
     const citiesOnScreen = [];
     cityElements.forEach(el => {
         let pureCity = el.textContent || el.innerText;
-        // Отрезаем системные маркеры
         pureCity = pureCity.replace(/(ТОЧНЫЙ МАГАЗИН|СОВПАДЕНИЕ ПО ГОРОДУ)/g, '').trim();
-        // Отрезаем иконки и эмодзи, чтобы не мешали поиску в кэше
         pureCity = pureCity.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
         if (pureCity && !citiesOnScreen.includes(pureCity)) citiesOnScreen.push(pureCity);
     });
@@ -995,7 +993,6 @@ async function findNearestStore() {
             let targetCityName = inputWords[0];
             let cityArray = russianCitiesGeoCache[targetCityName];
 
-            // Проверка на составные города из 2-х слов (Нижний Новгород)
             if (!cityArray && inputWords.length > 1) {
                 const doubleWordCity = `${inputWords[0]} ${inputWords[1]}`;
                 if (russianCitiesGeoCache[doubleWordCity]) {
@@ -1005,7 +1002,6 @@ async function findNearestStore() {
             }
 
             if (cityArray && cityArray.length > 0) {
-                // Если оператор указал регион для фильтрации
                 const regionFilterWords = inputWords.filter(w => w !== inputWords[0] && w !== inputWords[1])
                     .map(w => w.replace(/(область|обл|республика|край)/g, '').trim())
                     .filter(w => w.length > 0);
@@ -1014,7 +1010,6 @@ async function findNearestStore() {
                     const filterText = regionFilterWords.join(' ');
                     clientCoords = cityArray.find(c => c.region.includes(filterText) || filterText.includes(c.region));
                 } else {
-                    // Если регион не указан, берем крупнейший город по населению
                     cityArray.sort((a, b) => b.population - a.population);
                     clientCoords = cityArray[0];
                     if (cityArray.length > 1) {
@@ -1024,8 +1019,7 @@ async function findNearestStore() {
             }
         }
 
-        // ТЕСТ 2: НАДЁЖНЫЙ СПАСАТЕЛЬНЫЙ КРУГ
-        // Если локально в CSV города нет ИЛИ регион не подошел — шлем прямой запрос в OpenStreetMap
+        // ТЕСТ 2: НАДЁЖНЫЙ СПАСАТЕЛЬНЫЙ КРУГ (OpenStreetMap)
         if (!clientCoords) {
             output.innerHTML = `⏳ Спутник ищет "${userInput}" на подробных картах OpenStreetMap...`;
             clientCoords = await fetchCoordinates(userInput);
@@ -1042,13 +1036,11 @@ async function findNearestStore() {
         let nearestCity = "";
 
         for (let cityName of citiesOnScreen) {
-            // Очищаем название со страницы от скобок, например "Москва (в пределах МКАД)" -> "москва"
             let cleanCityName = cityName.replace(/\(.*?\)/g, '').trim().toLowerCase();
             cleanCityName = cleanCityName.replace(/[,.]/g, '').trim();
             
             let cityGeoArray = russianCitiesGeoCache[cleanCityName];
             if (!cityGeoArray) {
-                // Подстраховка по первому слову для сложных дефисных названий
                 const firstWord = cleanCityName.split(/[\s-]+/)[0];
                 cityGeoArray = russianCitiesGeoCache[firstWord];
             }
@@ -1057,16 +1049,22 @@ async function findNearestStore() {
                 cityGeoArray.sort((a, b) => b.population - a.population);
                 const cityGeo = cityGeoArray[0];
 
-                const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
-                if (dist < minDistance) {
-                    minDistance = dist;
+                // Считаем чистое расстояние по прямой (в км)
+                const straightDist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
+                
+                if (straightDist < minDistance) {
+                    minDistance = straightDist;
                     nearestCity = cityName;
                 }
             }
         }
 
-        // 4. ВЫВОД РЕЗУЛЬТАТА И РАСЧЕТ МЕСТНОГО ВРЕМЕНИ КЛИЕНТА
+        // 4. ВЫВОД РЕЗУЛЬТАТА С УЧЁТОМ ДОРОЖНОГО КОЭФФИЦИЕНТА И ВРЕМЕНИ КЛИЕНТА
         if (nearestCity) {
+            // ЛОГИСТИЧЕСКИЙ КОРРЕКТИРОВОЧНЫЙ КОЭФФИЦИЕНТ:
+            // Умножаем расстояние по прямой на 1.3 для симуляции реального автомобильного маршрута
+            const roadDistance = Math.round(minDistance * 1.3);
+
             let clientTz = parseInt(clientCoords.tz, 10);
             if (isNaN(clientTz)) clientTz = 3; 
 
@@ -1078,12 +1076,14 @@ async function findNearestStore() {
             const minutes = String(localTimeOfClient.getMinutes()).padStart(2, '0');
 
             const currentHours = localTimeOfClient.getHours();
+            
+            // Формируем красивый текст результата, явно указывая, что километраж дорожный
             if (currentHours >= 21 || currentHours < 8) {
                 output.style.color = '#ef4444'; 
-                output.innerHTML = `⚠️ Ближайшая точка: <strong>${nearestCity}</strong> (~${Math.round(minDistance)} км от ${userInput}, местное время клиента <strong>${hours}:${minutes}</strong>). ПОЗДНО ДЛЯ ЗВОНКА! ❌` + geoNotice;
+                output.innerHTML = `⚠️ Ближайшая точка: <strong>${nearestCity}</strong> (🚗 ~${roadDistance} км по трассе от ${userInput}, местное время клиента <strong>${hours}:${minutes}</strong>). ПОЗДНО ДЛЯ ЗВОНКА! ❌` + geoNotice;
             } else {
                 output.style.color = '#ea580c'; 
-                output.innerHTML = `💡 Ближайшая точка: <strong>${nearestCity}</strong> (~${Math.round(minDistance)} км от ${userInput}, местное время клиента <strong>${hours}:${minutes}</strong>)` + geoNotice;
+                output.innerHTML = `💡 Ближайшая точка: <strong>${nearestCity}</strong> (🚗 ~${roadDistance} км по трассе от ${userInput}, местное время клиента <strong>${hours}:${minutes}</strong>)` + geoNotice;
             }
         } else {
             output.style.color = '#ef4444';
