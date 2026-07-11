@@ -537,12 +537,16 @@ async function loadExternalGeoDatabase() {
             const regionName = row[regionIdx] ? row[regionIdx].replace(/"/g, '').trim().toLowerCase() : "";
             const population = row[popIdx] ? parseInt(row[popIdx].replace(/"/g, ''), 10) : 0;
             
-            // Перевод текстовой таймзоны в цифру
+            // Перевод текстовой таймзоны в цифру (ИСПРАВЛЕНО)
             const tzText = row[tzIdx] ? row[tzIdx].replace(/"/g, '').trim() : "UTC+3";
             let tzOffset = 3;
-            if (tzText.includes('+')) tzOffset = parseInt(tzText.split('+'), 10);
-            else if (tzText.includes('-')) tzOffset = -parseInt(tzText.split('-'), 10);
-            else if (tzText.includes('Moscow') || tzText.includes('Volgograd')) tzOffset = 3;
+            if (tzText.includes('+')) {
+                const parts = tzText.split('+');
+                tzOffset = parts.length > 1 ? parseInt(parts[1], 10) : 3;
+            } else if (tzText.includes('-')) {
+                const parts = tzText.split('-');
+                tzOffset = parts.length > 1 ? -parseInt(parts[1], 10) : 3;
+            } else if (tzText.includes('Moscow') || tzText.includes('Volgograd')) tzOffset = 3;
             else if (tzText.includes('Samara')) tzOffset = 4;
             else if (tzText.includes('Yekaterinburg')) tzOffset = 5;
             else if (tzText.includes('Omsk')) tzOffset = 6;
@@ -907,40 +911,68 @@ function copyText(elementId, buttonElement) {
     });
 }
 
-// Динамический поиск координат через бэкенд Google Карт
 async function fetchCoordinates(address) {
-    const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
+    // Добавляем к запросу ", Россия", чтобы OSM искал строго внутри страны
+    const queryUrl = `https://openstreetmap.org{encodeURIComponent(address + ", Россия")}&format=json&addressdetails=1&limit=1`;
+    
     try {
-        const res = await fetch(url); // СТРОГО БЕЗ { mode: 'cors', headers: ... }
-        const response = await res.json();
-        return (response && response.success) ? response.data : null;
+        const res = await fetch(queryUrl, {
+            headers: {
+                // Сервис OSM требует указывать User-Agent, чтобы понимать, кто к ним обращается
+                'User-Agent': 'StoreIntersectionTool/1.0'
+            }
+        });
+        const data = await res.json();
+        
+        if (data && data.length > 0) {
+            const result = data[0];
+            const lat = parseFloat(result.lat);
+            const lng = parseFloat(result.lon);
+            
+            // Пытаемся вытащить регион из ответа OSM для определения часового пояса
+            const state = result.address ? (result.address.state || result.address.region || "") : "";
+            
+            // Простой и надежный расчет таймзоны по долготе (lng) прямо на фронтенде
+            let tzOffset = 3; // По умолчанию Москва
+            if (lng > 20 && lng <= 38.5) tzOffset = 3;
+            else if (lng > 38.5 && lng <= 46.5) tzOffset = 3; 
+            else if (lng > 46.5 && lng <= 51.5) tzOffset = 4; // Самара
+            else if (lng > 51.5 && lng <= 69.5) tzOffset = 5; // Екатеринбург
+            else if (lng > 69.5 && lng <= 79.5) tzOffset = 6; // Омск
+            else if (lng > 79.5 && lng <= 99.5) tzOffset = 7; // Красноярск
+            else if (lng > 99.5 && lng <= 114.5) tzOffset = 8; // Иркутск
+            else if (lng > 114.5 && lng <= 127.5) tzOffset = 9; // Якутск
+            else if (lng > 127.5 && lng <= 137.5) tzOffset = 10; // Владивосток
+            else if (lng > 137.5 && lng <= 145.5) tzOffset = 11; // Магадан
+            else if (lng > 145.5) tzOffset = 12; // Камчатка/Чукотка (ИСПРАВЛЕНО!)
+
+            return { lat: lat, lng: lng, tz: tzOffset };
+        }
+        return null;
     } catch (e) {
-        console.error("Критическая ошибка сети при поиске адреса:", e);
+        console.error("Критическая ошибка сети при поиске адреса через OSM:", e);
         return null;
     }
 }
-// Полностью автоматический, сверхбыстрый и исправленный гео-поиск по всей России
+
 async function findNearestStore() {
-const userInput = document.getElementById('geo-search-input').value.trim();
-const output = document.getElementById('geo-result-output');
-
-if (!userInput) { alert("Введите адрес доставки клиента"); return; }
-
-// Сканируем экран и собираем города, которые выдал поиск
-const cityElements = document.querySelectorAll('.result-city');
-const citiesOnScreen = [];
-
-cityElements.forEach(el => {
-    // ИСПРАВЛЕНО: Вычищаем из текста плашки-статусы и эмодзи, оставляя только чистый город
-    let rawName = el.textContent || el.innerText;
-    let cleanName = rawName.replace(/(ТОЧНЫЙ МАГАЗИН|СОВПАДЕНИЕ ПО ГОРОДУ)/g, '').trim();
-    // Дополнительно убираем иконки локации и кружков, если они попали в текст
-    cleanName = cleanName.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
+    const userInput = document.getElementById('geo-search-input').value.trim();
+    const output = document.getElementById('geo-result-output');
     
-    if (cleanName && !citiesOnScreen.includes(cleanName)) {
-        citiesOnScreen.push(cleanName);
-    }
-});
+    if (!userInput) { alert("Введите адрес доставки клиента"); return; }
+
+    // 1. Сканируем экран и собираем чистые города (без плашек "ТОЧНЫЙ МАГАЗИН" и эмодзи)
+    const cityElements = document.querySelectorAll('.result-city');
+    const citiesOnScreen = [];
+    cityElements.forEach(el => {
+        let pureCity = el.textContent || el.innerText;
+        // Отрезаем системные маркеры
+        pureCity = pureCity.replace(/(ТОЧНЫЙ МАГАЗИН|СОВПАДЕНИЕ ПО ГОРОДУ)/g, '').trim();
+        // Отрезаем иконки и эмодзи, чтобы не мешали поиску в кэше
+        pureCity = pureCity.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
+        if (pureCity && !citiesOnScreen.includes(pureCity)) citiesOnScreen.push(pureCity);
+    });
+
     if (citiesOnScreen.length === 0) {
         output.style.color = '#ef4444';
         output.innerHTML = "⚠️ Сначала вставьте списки и найдите совпадения магазинов.";
@@ -948,7 +980,7 @@ cityElements.forEach(el => {
     }
 
     output.style.color = '#64748b';
-    output.innerHTML = `⏳ Спутник ищет координаты локации "${userInput}"...`;
+    output.innerHTML = `⏳ Спутник ищет координаты локации "${userInput}" во всемирной базе карт...`;
 
     try {
         let clientCoords = null;
@@ -957,61 +989,66 @@ cityElements.forEach(el => {
         // Разбираем ввод оператора
         const rawInput = userInput.trim().toLowerCase();
         const inputWords = rawInput.split(/[\s,]+/).filter(w => w.length > 0);
-        if (inputWords.length === 0) return;
-
-        // ИСПРАВЛЕНО: Берём СТРОГО первое слово как название города
-        const targetCityName = inputWords[0]; 
-        const regionFilterWords = inputWords.slice(1).map(w => w.replace(/область|обл|республика|край/g, '').trim()).filter(w => w.length > 0);
-
-        // ТЕСТ 1: Ищем локально в нашей базе городов из памяти
-        const cityArray = russianCitiesGeoCache[targetCityName];
         
-        if (cityArray && cityArray.length > 0) {
-            // А. Город есть локально в city.csv
-            if (regionFilterWords.length > 0) {
-                const filterText = regionFilterWords.join(' ');
-                clientCoords = cityArray.find(c => c.region.includes(filterText) || filterText.includes(c.region));
-                if (!clientCoords) {
-                    output.style.color = '#ea580c';
-                    output.innerHTML = `⚠️ Город "${targetCityName}" найден, но не в указанном регионе. Доступные регионы: ${cityArray.map(c => c.region || "не указан").join(', ')}`;
-                    return;
-                }
-            } else {
-                if (cityArray.length === 1) {
-                    clientCoords = cityArray[0]; // Фиксируем объект из массива
-                } else {
-                    // Если одноимённых много (Александровки), сортируем по населению
-                    cityArray.sort((a, b) => b.population - a.population);
-                    clientCoords = cityArray[0]; // Берем крупнейший объект
-                    geoNotice = ` <span style="font-size:11px; color:#64748b; display:block; margin-top:4px;">ℹ️ Выбрана крупнейшая точка по умолчанию (${clientCoords.region.toUpperCase()}). Можно уточнить регион через пробел.</span>`;
+        if (inputWords.length > 0) {
+            // ТЕСТ 1: Проверяем локальный кэш ( city.csv )
+            let targetCityName = inputWords[0];
+            let cityArray = russianCitiesGeoCache[targetCityName];
+
+            // Проверка на составные города из 2-х слов (Нижний Новгород)
+            if (!cityArray && inputWords.length > 1) {
+                const doubleWordCity = `${inputWords[0]} ${inputWords[1]}`;
+                if (russianCitiesGeoCache[doubleWordCity]) {
+                    targetCityName = doubleWordCity;
+                    cityArray = russianCitiesGeoCache[doubleWordCity];
                 }
             }
-        } else {
-            // Б. Спасательный круг: Города нет в локальной базе (Кадошкино). Идем в онлайн-карты Google
-            output.innerHTML = `⏳ Ищу "${userInput}" во всемирной базе карт Google...`;
+
+            if (cityArray && cityArray.length > 0) {
+                // Если оператор указал регион для фильтрации
+                const regionFilterWords = inputWords.filter(w => w !== inputWords[0] && w !== inputWords[1])
+                    .map(w => w.replace(/(область|обл|республика|край)/g, '').trim())
+                    .filter(w => w.length > 0);
+
+                if (regionFilterWords.length > 0) {
+                    const filterText = regionFilterWords.join(' ');
+                    clientCoords = cityArray.find(c => c.region.includes(filterText) || filterText.includes(c.region));
+                } else {
+                    // Если регион не указан, берем крупнейший город по населению
+                    cityArray.sort((a, b) => b.population - a.population);
+                    clientCoords = cityArray[0];
+                    if (cityArray.length > 1) {
+                        geoNotice = ` <span style="font-size:11px; color:#64748b; display:block; margin-top:4px;">ℹ️ Выбрана крупнейшая точка (${clientCoords.region.toUpperCase()}). Можно уточнить регион через пробел.</span>`;
+                    }
+                }
+            }
+        }
+
+        // ТЕСТ 2: НАДЁЖНЫЙ СПАСАТЕЛЬНЫЙ КРУГ
+        // Если локально в CSV города нет ИЛИ регион не подошел — шлем прямой запрос в OpenStreetMap
+        if (!clientCoords) {
+            output.innerHTML = `⏳ Спутник ищет "${userInput}" на подробных картах OpenStreetMap...`;
             clientCoords = await fetchCoordinates(userInput);
         }
         
         if (!clientCoords) {
             output.style.color = '#ef4444';
-            output.innerHTML = "❌ Населенный пункт не найден ни в локальной базе, ни на картах Google. Уточните ввод.";
+            output.innerHTML = "❌ Населенный пункт не найден. Проверьте правильность написания.";
             return;
         }
 
+        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ РАССТОЯНИЙ ДО ГОРОДОВ НА ЭКРАНЕ
         let minDistance = Infinity;
         let nearestCity = "";
 
-        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ
         for (let cityName of citiesOnScreen) {
-            // ИСПРАВЛЕНО: Полностью вычищаем скобки и спецсимволы, чтобы "Москва (в пределах МКАД)" стала просто "москва"
+            // Очищаем название со страницы от скобок, например "Москва (в пределах МКАД)" -> "москва"
             let cleanCityName = cityName.replace(/\(.*?\)/g, '').trim().toLowerCase();
             cleanCityName = cleanCityName.replace(/[,.]/g, '').trim();
             
-            // Ищем координаты города с экрана в кэше
             let cityGeoArray = russianCitiesGeoCache[cleanCityName];
-            
-            // Подстраховка: если город сложный (Южно-Сахалинск), а в базе он например без дефиса, пробуем по первому слову
             if (!cityGeoArray) {
+                // Подстраховка по первому слову для сложных дефисных названий
                 const firstWord = cleanCityName.split(/[\s-]+/)[0];
                 cityGeoArray = russianCitiesGeoCache[firstWord];
             }
@@ -1023,12 +1060,12 @@ cityElements.forEach(el => {
                 const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
                 if (dist < minDistance) {
                     minDistance = dist;
-                    nearestCity = cityName; // Запоминаем красивое имя для вывода на экран
+                    nearestCity = cityName;
                 }
             }
         }
 
-        // 4. ВЫВОД РЕЗУЛЬТАТА И ЖЕЛЕЗНЫЙ РАСЧЕТ ВРЕМЕНИ КЛИЕНТА
+        // 4. ВЫВОД РЕЗУЛЬТАТА И РАСЧЕТ МЕСТНОГО ВРЕМЕНИ КЛИЕНТА
         if (nearestCity) {
             let clientTz = parseInt(clientCoords.tz, 10);
             if (isNaN(clientTz)) clientTz = 3; 
@@ -1050,7 +1087,7 @@ cityElements.forEach(el => {
             }
         } else {
             output.style.color = '#ef4444';
-            output.innerHTML = "⚠️ Не удалось сопоставить города на экране с гео-базой. Проверьте логику кэша.";
+            output.innerHTML = "⚠️ Не удалось сопоставить города на экране с гео-базой данных.";
         }
 
     } catch (err) {
