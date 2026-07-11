@@ -959,7 +959,7 @@ async function findNearestStore() {
                 cityArray.sort((a, b) => b.population - a.population);
                 clientCoords = cityArray[0];
                 
-                geoNotice = ` <span style="font-size:11px; color:#64748b; display:block; margin-top:4px;">ℹ️ Найдено несколько совпадений. Выбрана крупнейшая точка по умолчанию (${clientCoords.region.toUpperCase()}). Если нужен другой регион, допишите его через пробел.</span>`;
+                geoNotice = ` <span style="font-size:11px; color:#64748b; display:block; margin-top:4px;">ℹ️ Найдено несколько совпадений. Выбрана крупнейшая точка по умолчанию (${clientCoords.region.toUpperCase()}). Если нужен другой регион, впишите его через пробел.</span>`;
             }
         }
 
@@ -968,13 +968,19 @@ async function findNearestStore() {
 
         // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ
         for (let cityName of citiesOnScreen) {
+            // Сначала убираем скобки и всё, что внутри них
             let cleanCityName = cityName.replace(/\(.*?\)/g, '').trim();
-            cleanCityName = cleanCityName.split(/\s+/)[0].replace(/[,.]/g, '').trim().toLowerCase();
             
-            const cityGeoArray = russianCitiesGeoCache[cleanCityName];
+            // ИСПРАВЛЕНО: сначала очищаем строку от знаков препинания, а уже потом берем первое слово через split
+            cleanCityName = cleanCityName.replace(/[,.]/g, '').trim().toLowerCase();
+            const wordsArray = cleanCityName.split(/\s+/);
+            const firstCityWord = wordsArray[0]; // Берем чистое первое слово города
+            
+            // Ищем город в скачанном кэше HFLabs
+            const cityGeoArray = russianCitiesGeoCache[firstCityWord];
             
             if (cityGeoArray && cityGeoArray.length > 0) {
-                // Из массива одноименных городов-складов на экране берем самый крупный (обычно это областной центр)
+                // Из массива одноименных городов берем самый крупный
                 cityGeoArray.sort((a, b) => b.population - a.population);
                 const cityGeo = cityGeoArray[0];
 
