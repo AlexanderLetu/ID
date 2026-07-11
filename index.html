@@ -909,19 +909,22 @@ function copyText(elementId, buttonElement) {
 
 // Динамический поиск координат через бэкенд Google Карт
 async function fetchCoordinates(address) {
-    // Кодируем адрес, чтобы пробелы и спецсимволы не ломали URL-строку
     const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
     try {
-        const res = await fetch(url);
+        // Добавляем явные параметры для обхода блокировок безопасности браузера
+        const res = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
         const response = await res.json();
-        // Возвращаем данные, только если бэкенд прислал success: true
         return (response && response.success) ? response.data : null;
     } catch (e) {
-        console.error("Ошибка fetchCoordinates:", e);
+        console.error("Критическая ошибка сети при поиске адреса:", e);
         return null;
     }
 }
-
 // Гибридный поиск: Города берутся из памяти, редкие деревни/ПГТ пробиваются через онлайн-бэкенд Google
 async function findNearestStore() {
     const userInput = document.getElementById('geo-search-input').value.trim();
