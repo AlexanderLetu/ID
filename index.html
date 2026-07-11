@@ -948,13 +948,25 @@ async function findNearestStore() {
         let minDistance = Infinity;
         let nearestCity = "";
 
-        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ: Считаем расстояние до каждого города на экране через локальную базу HFLabs
+        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ: Считаем расстояние локально
         for (let cityName of citiesOnScreen) {
-            // Очищаем «красивое» название города от приписок в скобках для точного совпадения ключей
-            const cleanCityName = cityName.replace(/\(.*?\)/g, '').trim().toLowerCase();
+            // Улучшенная очистка: убираем скобки и всё, что внутри них
+            let cleanCityName = cityName.replace(/\(.*?\)/g, '').trim();
+            
+            // Лайфхак: берем только первое слово (чтобы "Москва" отсекалась от любых фраз)
+            cleanCityName = cleanCityName.split(/\s+/)[0].replace(/[,.]/g, '').trim().toLowerCase();
             
             // Ищем город в скачанном кэше HFLabs
             const cityGeo = russianCitiesGeoCache[cleanCityName];
+            
+            if (cityGeo) {
+                const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestCity = cityName;
+                }
+            }
+        }
             
             if (cityGeo) {
                 // Считаем расстояние между деревней клиента и городом-складом локально процессором за 0.0001 сек
