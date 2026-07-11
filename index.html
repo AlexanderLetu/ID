@@ -1001,36 +1001,37 @@ cityElements.forEach(el => {
         let minDistance = Infinity;
         let nearestCity = "";
 
-        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ РАССТОЯНИЙ ДО ГОРОДОВ НА ЭКРАНЕ
+        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ
         for (let cityName of citiesOnScreen) {
-            let cleanCityName = cityName.replace(/\(.*?\)/g, '').trim();
-            cleanCityName = cleanCityName.replace(/[,.]/g, '').trim().toLowerCase();
-            const wordsArray = cleanCityName.split(/\s+/);
-            const firstCityWord = wordsArray[0];
+            // ИСПРАВЛЕНО: Полностью вычищаем скобки и спецсимволы, чтобы "Москва (в пределах МКАД)" стала просто "москва"
+            let cleanCityName = cityName.replace(/\(.*?\)/g, '').trim().toLowerCase();
+            cleanCityName = cleanCityName.replace(/[,.]/g, '').trim();
             
-            const cityGeoArray = russianCitiesGeoCache[firstCityWord];
+            // Ищем координаты города с экрана в кэше
+            let cityGeoArray = russianCitiesGeoCache[cleanCityName];
+            
+            // Подстраховка: если город сложный (Южно-Сахалинск), а в базе он например без дефиса, пробуем по первому слову
+            if (!cityGeoArray) {
+                const firstWord = cleanCityName.split(/[\s-]+/)[0];
+                cityGeoArray = russianCitiesGeoCache[firstWord];
+            }
             
             if (cityGeoArray && cityGeoArray.length > 0) {
                 cityGeoArray.sort((a, b) => b.population - a.population);
-                const cityGeo = cityGeoArray[0]; // Берём объект из массива городов-складов
+                const cityGeo = cityGeoArray[0];
 
                 const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
                 if (dist < minDistance) {
                     minDistance = dist;
-                    nearestCity = cityName;
+                    nearestCity = cityName; // Запоминаем красивое имя для вывода на экран
                 }
             }
         }
 
         // 4. ВЫВОД РЕЗУЛЬТАТА И ЖЕЛЕЗНЫЙ РАСЧЕТ ВРЕМЕНИ КЛИЕНТА
         if (nearestCity) {
-            // СВЕРХНАДЁЖНАЯ ПРОВЕРКА: Извлекаем tz независимо от того, массив это или одиночный объект
-            let clientTz = 3;
-            if (Array.isArray(clientCoords) && clientCoords.length > 0) {
-                clientTz = clientCoords[0].tz || 3;
-            } else if (clientCoords && clientCoords.tz) {
-                clientTz = clientCoords.tz;
-            }
+            let clientTz = parseInt(clientCoords.tz, 10);
+            if (isNaN(clientTz)) clientTz = 3; 
 
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -1049,7 +1050,7 @@ cityElements.forEach(el => {
             }
         } else {
             output.style.color = '#ef4444';
-            output.innerHTML = "⚠️ Не удалось сопоставить города на экране с гео-базой.";
+            output.innerHTML = "⚠️ Не удалось сопоставить города на экране с гео-базой. Проверьте логику кэша.";
         }
 
     } catch (err) {
