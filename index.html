@@ -385,8 +385,8 @@
             <button id="btn-search-code" onclick="setSearchMode('code')" class="nav-btn">
                 🪪 Поиск по коду магазина
             </button>
-            <button onclick="toggleTheme()" class="nav-btn">
-                🌙 Темная тема
+            <button id="theme-toggle-btn" onclick="toggleTheme()" class="nav-btn" style="flex: 0 0 auto; width: 44px; padding: 10px 0; font-size: 16px;">
+                🌙
             </button>
         </div>
 
@@ -481,8 +481,13 @@ let storeDatabase = {};
 // Автоматический старт при загрузке страницы
 window.addEventListener('DOMContentLoaded', () => {
     loadDatabase();
+    
+    // Проверяем сохраненную тему в памяти браузера
     if (localStorage.getItem('app-theme') === 'dark') {
         document.body.classList.add('dark-mode');
+        document.getElementById('theme-toggle-btn').innerText = '☀️'; // Ставим солнце, если тема темная
+    } else {
+        document.getElementById('theme-toggle-btn').innerText = '🌙'; // Ставим луну, если светлая
     }
 });
 
@@ -530,9 +535,13 @@ function setSearchMode(mode) {
 // Управление темной темой
 function toggleTheme() {
     document.body.classList.toggle('dark-mode');
-    localStorage.setItem('app-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    const isDark = document.body.classList.contains('dark-mode');
+    
+    // Меняем иконку на кнопке: если темно — показываем солнце, если светло — луну
+    document.getElementById('theme-toggle-btn').innerText = isDark ? '☀️' : '🌙';
+    
+    localStorage.setItem('app-theme', isDark ? 'dark' : 'light');
 }
-
 // Добавление динамических списков
 function addNewList() {
     listCount++;
