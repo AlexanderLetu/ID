@@ -431,7 +431,13 @@
         <button onclick="addNewList()" class="btn-add">
             ➕ Добавить список
         </button>
-
+        <!-- 🔢 Фильтр по минимальному количеству товара -->
+        <div class="input-group" style="margin-bottom: 16px;">
+            <label class="input-label" style="display: flex; align-items: center; gap: 6px;">
+                🔢 Требуемое количество товара (не обязательно)
+            </label>
+            <input type="number" id="min-stock-filter" class="input-textarea" style="height: 42px; margin-bottom: 0;" placeholder="Например: 5 или 6 (если пусто — выведет любые остатки)" min="1">
+        </div>
         <!-- Основные кнопки действий -->
         <div class="actions-panel">
             <button onclick="startSearch()" class="btn-main btn-primary">
@@ -720,7 +726,6 @@ function parseDirtyList(text) {
     return storesMap;
 }
 
-// Главная функция запуска вычислений при нажатии синей кнопки
 function startSearch() {
     const activeLists = [];
     for (let i = 1; i <= 100; i++) {
@@ -735,17 +740,21 @@ function startSearch() {
         return;
     }
 
-    // Сюда будем собирать все типы находок
+    // Считываем значение нового фильтра количества товара
+    const filterInput = document.getElementById('min-stock-filter').value.trim();
+    const requiredStock = filterInput ? parseInt(filterInput, 10) : 0;
+
     let finalMatches = [];
-    // Наборы для контроля, чтобы не дублировать информацию
     const addedExactCodes = new Set();
-    const addedSoftCities = new Set();
 
     // 1. НАХОДИМ ТОЧНЫЕ СОВПАДЕНИЯ ПО МАГАЗИНАМ (Строгое пересечение)
     if (activeLists.length === 1) {
         activeLists[0].forEach((stock, code) => {
-            finalMatches.push({ code, stock, isExact: true });
-            addedExactCodes.add(code);
+            // ФИЛЬТР: Проверяем, хватает ли товара под запрос оператора
+            if (stock >= requiredStock) {
+                finalMatches.push({ code, stock, isExact: true });
+                addedExactCodes.add(code);
+            }
         });
     } else {
         const firstMap = activeLists[0];
@@ -761,7 +770,9 @@ function startSearch() {
                     minStock = Math.min(minStock, activeLists[j].get(code));
                 }
             }
-            if (isInAll) {
+            
+            // ФИЛЬТР: Магазин есть везде И минимального остатка в нём хватает под запрос
+            if (isInAll && minStock >= requiredStock) {
                 finalMatches.push({ code, stock: minStock, isExact: true });
                 addedExactCodes.add(code);
             }
@@ -770,17 +781,18 @@ function startSearch() {
 
     // 2. НАХОДИМ МЯГКИЕ СОВПАДЕНИЯ ПО ГОРОДАМ (Если списков больше одного)
     if (activeLists.length > 1) {
-        // Переводим каждый список кодов в сет уникальных названий городов
         const listsOfCities = activeLists.map(storeMap => {
             const citySet = new Set();
             storeMap.forEach((stock, code) => {
-                const dbItem = storeDatabase[code];
-                if (dbItem && dbItem.city) citySet.add(dbItem.city);
+                // УЧИТЫВАЕМ ФИЛЬТР: в Сет городов добавляем только те магазины, где товара хватает
+                if (stock >= requiredStock) {
+                    const dbItem = storeDatabase[code];
+                    if (dbItem && dbItem.city) citySet.add(dbItem.city);
+                }
             });
             return citySet;
         });
 
-        // Ищем города, которые присутствуют ОДНОВРЕМЕННО во всех списках
         const matchingCities = [];
         if (listsOfCities.length > 0) {
             listsOfCities[0].forEach(cityName => {
@@ -795,14 +807,13 @@ function startSearch() {
             });
         }
 
-        // Собираем магазины из совпавших городов, которые мы ЕЩЕ НЕ ДОБАВИЛИ как точные
         matchingCities.forEach(cityName => {
             activeLists.forEach(storeMap => {
                 storeMap.forEach((stock, code) => {
                     const dbItem = storeDatabase[code];
-                    // Если магазин относится к совпавшему городу и он НЕ является точным пересечением
-                    if (dbItem && dbItem.city === cityName && !addedExactCodes.has(code)) {
-                        // Проверяем на дубли в рамках мягкого поиска
+                    
+                    // УЧИТЫВАЕМ ФИЛЬТР: при сборе остатков мягкого поиска проверяем лимит
+                    if (dbItem && dbItem.city === cityName && !addedExactCodes.has(code) && stock >= requiredStock) {
                         if (!finalMatches.some(s => s.code === code)) {
                             finalMatches.push({ code, stock, isExact: false, softCityKey: cityName });
                         }
@@ -812,10 +823,9 @@ function startSearch() {
         });
     }
 
-    // Передаем весь объединенный массив в отрисовку
-    // Флаг "dynamic" укажет renderResults, что нужно смотреть на поле .isExact внутри каждого элемента
     renderResults(finalMatches, "dynamic");
 }
+
 // Группировка по городам, сортировка и вывод результатов
 function renderResults(storesArray, matchType) {
     const container = document.getElementById('results-rows-container');
@@ -1105,13 +1115,16 @@ async function findNearestStore() {
     }
 }
 
-// Очистка формы (Шаг 4)
 function resetAllForm() {
     const dynamicLists = document.querySelectorAll('.input-group');
     dynamicLists.forEach((list, index) => { if (index >= 2) list.remove(); });
     listCount = 2;
     document.getElementById('list-1').value = '';
     document.getElementById('list-2').value = '';
+    
+    // ВОТ ЭТА СТРОЧКА: Очищаем новое поле лимита товара
+    document.getElementById('min-stock-filter').value = '';
+    
     document.getElementById('geo-search-input').value = '';
     document.getElementById('geo-result-output').innerHTML = '';
     document.getElementById('results-section').style.display = 'none';
