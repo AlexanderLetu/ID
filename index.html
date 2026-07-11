@@ -378,7 +378,12 @@
         body.dark-mode .results-title {
             color: #60a5fa !important;
         }
-
+        /* Красивое отображение точных магазинов в темной теме */
+        body.dark-mode .store-badge.exact-badge {
+            background: #064e3b !important;
+            color: #34d399 !important;
+            border-color: #059669 !important;
+        }
     </style>
 </head>
 <body>
@@ -857,10 +862,13 @@ function renderResults(storesArray, matchType) {
 
         let badgesHtml = '';
         top3Stores.forEach(store => {
+            // Если магазин точный, вешаем на него класс exact-badge для темной темы и базовый инлайн для светлой
             const badgeStyle = store.isExact 
                 ? 'background: #f0fdf4; color: #16a34a; border: 2px solid #bbf7d0;' 
                 : '';
-            badgesHtml += `<button class="store-badge" style="${badgeStyle}" onclick="openStoreCard('${store.code}')">${store.code} (${store.stock} шт)</button>`;
+            const exactClass = store.isExact ? 'exact-badge' : '';
+            
+            badgesHtml += `<button class="store-badge ${exactClass}" style="${badgeStyle}" onclick="openStoreCard('${store.code}')">${store.code} (${store.stock} шт)</button>`;
         });
 
         const matchLabel = group.isExact 
