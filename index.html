@@ -186,6 +186,11 @@
         body.dark-mode .input-textarea { background: #334155; border-color: #475569; color: #f8fafc; }
         body.dark-mode .top-navbar { background: #334155; }
         body.dark-mode .nav-btn { color: #94a3b8; }
+        
+        body.dark-mode .nav-btn.active {
+            color: #ffffff !important; 
+            background: #3b82f6;
+        }
 
         /* Кнопка удаления для динамических списков */
         .btn-delete {
@@ -533,6 +538,7 @@ function setSearchMode(mode) {
     currentSearchMode = mode;
     const btnCity = document.getElementById('btn-search-city');
     const btnCode = document.getElementById('btn-search-code');
+    
     if (mode === 'city') {
         btnCity.classList.add('active');
         btnCode.classList.remove('active');
