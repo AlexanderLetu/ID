@@ -909,12 +909,9 @@ function copyText(elementId, buttonElement) {
 
 // Динамический поиск координат через бэкенд Google Карт
 async function fetchCoordinates(address) {
-    // encodeURIComponent безопасно оборачивает пробелы и кириллицу
     const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
     try {
-        // Делаем чистый GET запрос без CORS-заголовков и OPTIONS-проверок
-        const res = await fetch(url);
-        
+        const res = await fetch(url); // СТРОГО БЕЗ { mode: 'cors', headers: ... }
         const response = await res.json();
         return (response && response.success) ? response.data : null;
     } catch (e) {
