@@ -1117,24 +1117,42 @@ async function findNearestStore() {
 }
 
 function resetAllForm() {
-    const dynamicLists = document.querySelectorAll('.input-group');
-    // Оставляем только первые два списка
-    dynamicLists.forEach((list, index) => { if (index >= 2) list.remove(); });
+    // Находим динамические списки строго внутри их родного контейнера #lists-container
+    const container = document.getElementById('lists-container');
+    const dynamicLists = container.querySelectorAll('.input-group');
+    
+    // Удаляем только списки, начиная с третьего (индекс 2 и далее)
+    dynamicLists.forEach((list, index) => { 
+        if (index >= 2) list.remove(); 
+    });
+    
+    // Сбрасываем глобальный счетчик до двух стартовых списков
     listCount = 2;
     
-    document.getElementById('list-1').value = '';
-    document.getElementById('list-2').value = '';
+    // Очищаем текстовые поля первых двух списков
+    const list1 = document.getElementById('list-1');
+    const list2 = document.getElementById('list-2');
+    if (list1) list1.value = '';
+    if (list2) list2.value = '';
     
-    // ИСПРАВЛЕНО: Безопасное обнуление фильтра количества с проверкой на null
+    // Безопасно обнуляем фильтр количества товара
     const minStockInput = document.getElementById('min-stock-filter');
     if (minStockInput) {
         minStockInput.value = '';
     }
     
-    document.getElementById('geo-search-input').value = '';
-    document.getElementById('geo-result-output').innerHTML = '';
-    document.getElementById('results-section').style.display = 'none';
-    document.getElementById('list-1').focus();
+    // Очищаем поля гео-поиска шага 3
+    const geoInput = document.getElementById('geo-search-input');
+    const geoOutput = document.getElementById('geo-result-output');
+    if (geoInput) geoInput.value = '';
+    if (geoOutput) geoOutput.innerHTML = '';
+    
+    // Скрываем карточку результатов
+    const resSection = document.getElementById('results-section');
+    if (resSection) resSection.style.display = 'none';
+    
+    // Возвращаем фокус на первый список
+    if (list1) list1.focus();
 }
 
     </script>
