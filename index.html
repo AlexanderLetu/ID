@@ -915,6 +915,7 @@ async function fetchCoordinates(address) {
     return response.success ? response.data : null;
 }
 
+// Гибридный поиск: Города берутся из памяти, редкие деревни/ПГТ пробиваются через онлайн-бэкенд Google
 async function findNearestStore() {
     const userInput = document.getElementById('geo-search-input').value.trim();
     const output = document.getElementById('geo-result-output');
@@ -935,69 +936,67 @@ async function findNearestStore() {
     }
 
     output.style.color = '#64748b';
-    output.innerHTML = `⏳ Спутник ищет координаты клиента и доступных городов...`;
+    output.innerHTML = `⏳ Спутник ищет координаты локации "${userInput}"...`;
 
     try {
-        // 2. УМНЫЙ ЛОКАЛЬНЫЙ ПОИСК КЛИЕНТА (С разбором на Город + Регион фильтр)
+        let clientCoords = null;
+        let geoNotice = "";
+
+        // Разбираем ввод оператора
         const rawInput = userInput.trim().toLowerCase();
         const inputWords = rawInput.split(/[\s,]+/).filter(w => w.length > 0);
         if (inputWords.length === 0) return;
 
-        const targetCityName = inputWords[0]; // Первое слово — всегда город
+        const targetCityName = inputWords[0]; 
         const regionFilterWords = inputWords.slice(1).map(w => w.replace(/область|обл|республика|край/g, '').trim()).filter(w => w.length > 0);
 
+        // ТЕСТ 1: Ищем локально в нашей базе городов из памяти
         const cityArray = russianCitiesGeoCache[targetCityName];
         
-        if (!cityArray || cityArray.length === 0) {
-            output.style.color = '#ef4444';
-            output.innerHTML = "❌ Населенный пункт не найден в гео-базе. Проверьте написание.";
-            return;
-        }
-
-        let clientCoords = null;
-        let geoNotice = ""; 
-
-        // Сценарий А: Оператор ввел регион ("Александровка Тульская")
-        if (regionFilterWords.length > 0) {
-            const filterText = regionFilterWords.join(' ');
-            clientCoords = cityArray.find(c => c.region.includes(filterText) || filterText.includes(c.region));
-            
-            if (!clientCoords) {
-                output.style.color = '#ea580c';
-                output.innerHTML = `⚠️ Город "${targetCityName}" найден, но не в указанном регионе. Доступные регионы: ${cityArray.map(c => c.region || "не указан").join(', ')}`;
-                return;
+        if (cityArray && cityArray.length > 0) {
+            // А. Город есть локально. Применяем стандартные сценарии
+            if (regionFilterWords.length > 0) {
+                const filterText = regionFilterWords.join(' ');
+                clientCoords = cityArray.find(c => c.region.includes(filterText) || filterText.includes(c.region));
+                if (!clientCoords) {
+                    output.style.color = '#ea580c';
+                    output.innerHTML = `⚠️ Город "${targetCityName}" найден, но не в указанном регионе. Доступные регионы: ${cityArray.map(c => c.region || "не указан").join(', ')}`;
+                    return;
+                }
+            } else {
+                if (cityArray.length === 1) {
+                    clientCoords = cityArray[0];
+                } else {
+                    cityArray.sort((a, b) => b.population - a.population);
+                    clientCoords = cityArray[0];
+                    geoNotice = ` <span style="font-size:11px; color:#64748b; display:block; margin-top:4px;">ℹ️ Выбрана крупнейшая точка по умолчанию (${clientCoords.region.toUpperCase()}). Можно уточнить регион через пробел.</span>`;
+                }
             }
         } else {
-            // Сценарий Б: Оператор ввел только имя города ("Уфа", "Александровка")
-            if (cityArray.length === 1) {
-                clientCoords = cityArray[0]; // Уфа одна — берем сразу!
-            } else {
-                // Если одноименных много, сортируем по населению и берем крупнейший по умолчанию
-                cityArray.sort((a, b) => b.population - a.population);
-                clientCoords = cityArray[0];
-                
-                geoNotice = ` <span style="font-size:11px; color:#64748b; display:block; margin-top:4px;">ℹ️ Найдено несколько совпадений. Выбрана крупнейшая точка по умолчанию (${clientCoords.region.toUpperCase()}). Если нужен другой регион, впишите его через пробел.</span>`;
-            }
+            // Б. Спасательный круг: Города нет в локальной базе (как Кадошкино). Идем в сеть за 0.5 сек!
+            output.innerHTML = `⏳ Ищу "${userInput}" во всемирной базе карт Google...`;
+            clientCoords = await fetchCoordinates(userInput);
+        }
+        
+        if (!clientCoords) {
+            output.style.color = '#ef4444';
+            output.innerHTML = "❌ Населенный пункт не найден ни в локальной базе, ни на картах Google. Уточните ввод.";
+            return;
         }
 
         let minDistance = Infinity;
         let nearestCity = "";
 
-        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ
+        // 3. МГНОВЕННЫЙ ПЕРЕБОР В ПАМЯТИ РАССТОЯНИЙ ДО ГОРОДОВ НА ЭКРАНЕ
         for (let cityName of citiesOnScreen) {
-            // Сначала убираем скобки и всё, что внутри них
             let cleanCityName = cityName.replace(/\(.*?\)/g, '').trim();
-            
-            // ИСПРАВЛЕНО: сначала очищаем строку от знаков препинания, а уже потом берем первое слово через split
             cleanCityName = cleanCityName.replace(/[,.]/g, '').trim().toLowerCase();
             const wordsArray = cleanCityName.split(/\s+/);
-            const firstCityWord = wordsArray[0]; // Берем чистое первое слово города
+            const firstCityWord = wordsArray[0];
             
-            // Ищем город в скачанном кэше HFLabs
             const cityGeoArray = russianCitiesGeoCache[firstCityWord];
             
             if (cityGeoArray && cityGeoArray.length > 0) {
-                // Из массива одноименных городов берем самый крупный
                 cityGeoArray.sort((a, b) => b.population - a.population);
                 const cityGeo = cityGeoArray[0];
 
@@ -1009,7 +1008,7 @@ async function findNearestStore() {
             }
         }
 
-        // 4. Расчет местного времени КЛИЕНТА и вывод с подсказкой geoNotice
+        // 4. ВЫВОД РЕЗУЛЬТАТА И ВРЕМЕНИ КЛИЕНТА
         if (nearestCity) {
             const clientTz = clientCoords.tz || 3; 
             const now = new Date();
