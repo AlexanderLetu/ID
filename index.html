@@ -578,7 +578,7 @@ async function loadExternalGeoDatabase() {
 // ========================================================
 // ГЛОБАЛЬНЫЙ АДРЕС БЭКЕНДА И НАСТРОЙКИ ПРИЛОЖЕНИЯ
 // ========================================================
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyH9C1l1RSasxQP5xrENVXZpHtO3l3g_Xz3e0UY6hMIU5Ytyu7Qy4LBu2RWlKQHspLb/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySqISokz6WKlkUhrY7kFsAgYhCkmLLTCGOQpIXLTjPoQrCcjYcB-PltRoPw2b-5San/exec";
 
 let currentSearchMode = 'city'; 
 let listCount = 2;              
@@ -909,14 +909,11 @@ function copyText(elementId, buttonElement) {
 
 // Динамический поиск координат через бэкенд Google Карт
 async function fetchCoordinates(address) {
+    // encodeURIComponent безопасно оборачивает пробелы и кириллицу
     const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
     try {
-        // Добавляем явные параметры для обхода блокировок безопасности браузера
-        const res = await fetch(url, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' }
-        });
+        // Делаем чистый GET запрос без CORS-заголовков и OPTIONS-проверок
+        const res = await fetch(url);
         
         const response = await res.json();
         return (response && response.success) ? response.data : null;
@@ -927,19 +924,26 @@ async function fetchCoordinates(address) {
 }
 // Полностью автоматический, сверхбыстрый и исправленный гео-поиск по всей России
 async function findNearestStore() {
-    const userInput = document.getElementById('geo-search-input').value.trim();
-    const output = document.getElementById('geo-result-output');
+const userInput = document.getElementById('geo-search-input').value.trim();
+const output = document.getElementById('geo-result-output');
+
+if (!userInput) { alert("Введите адрес доставки клиента"); return; }
+
+// Сканируем экран и собираем города, которые выдал поиск
+const cityElements = document.querySelectorAll('.result-city');
+const citiesOnScreen = [];
+
+cityElements.forEach(el => {
+    // ИСПРАВЛЕНО: Вычищаем из текста плашки-статусы и эмодзи, оставляя только чистый город
+    let rawName = el.textContent || el.innerText;
+    let cleanName = rawName.replace(/(ТОЧНЫЙ МАГАЗИН|СОВПАДЕНИЕ ПО ГОРОДУ)/g, '').trim();
+    // Дополнительно убираем иконки локации и кружков, если они попали в текст
+    cleanName = cleanName.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
     
-    if (!userInput) { alert("Введите адрес доставки клиента"); return; }
-
-    // 1. Сканируем экран и собираем города, которые выдал поиск
-    const cityElements = document.querySelectorAll('.result-city');
-    const citiesOnScreen = [];
-    cityElements.forEach(el => {
-        const name = el.innerText.trim();
-        if (!citiesOnScreen.includes(name)) citiesOnScreen.push(name);
-    });
-
+    if (cleanName && !citiesOnScreen.includes(cleanName)) {
+        citiesOnScreen.push(cleanName);
+    }
+});
     if (citiesOnScreen.length === 0) {
         output.style.color = '#ef4444';
         output.innerHTML = "⚠️ Сначала вставьте списки и найдите совпадения магазинов.";
