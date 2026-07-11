@@ -621,6 +621,7 @@ function parseDirtyList(text) {
 }
 
 // Главная функция запуска вычислений при нажатии синей кнопки
+// Главная функция запуска вычислений при нажатии синей кнопки
 function startSearch() {
     const activeLists = [];
     for (let i = 1; i <= 100; i++) {
@@ -635,10 +636,11 @@ function startSearch() {
         return;
     }
 
-    let finalStores = [];
+    // 1. Проверяем точные совпадения ПО МАГАЗИНАМ (Строгое пересечение)
+    let exactStoreMatches = [];
     if (activeLists.length === 1) {
         activeLists[0].forEach((stock, code) => {
-            finalStores.push({ code, stock });
+            exactStoreMatches.push({ code, stock, isExact: true });
         });
     } else {
         const firstMap = activeLists[0];
@@ -654,14 +656,71 @@ function startSearch() {
                     minStock = Math.min(minStock, activeLists[j].get(code));
                 }
             }
-            if (isInAll) finalStores.push({ code, stock: minStock });
+            if (isInAll) exactStoreMatches.push({ code, stock: minStock, isExact: true });
         });
     }
-    renderResults(finalStores);
+
+    // Если точные совпадения по магазинам НАЙДЕНЫ, выводим их
+    if (exactStoreMatches.length > 0) {
+        renderResults(exactStoreMatches, "exact");
+        return;
+    }
+
+    // 2. Если точных магазинов нет, ищем мягкие совпадения ПО ГОРОДАМ (Мягкое пересечение)
+    if (activeLists.length > 1) {
+        // Переводим каждый список из кодов магазинов в список уникальных городов
+        const listsOfCities = activeLists.map(storeMap => {
+            const citySet = new Set();
+            storeMap.forEach((stock, code) => {
+                const dbItem = storeDatabase[code];
+                if (dbItem && dbItem.city) citySet.add(dbItem.city);
+            });
+            return citySet;
+        });
+
+        // Ищем города, которые есть ОДНОВРЕМЕННО во всех сетах городов
+        const matchingCities = [];
+        if (listsOfCities.length > 0) {
+            listsOfCities[0].forEach(cityName => {
+                let isCityInAll = true;
+                for (let j = 1; j < listsOfCities.length; j++) {
+                    if (!listsOfCities[j].has(cityName)) {
+                        isCityInAll = false;
+                        break;
+                    }
+                }
+                if (isCityInAll) matchingCities.push(cityName);
+            });
+        }
+
+        // Собираем все магазины из совпавших городов, которые были хоть в одном списке
+        let cityMatchStores = [];
+        matchingCities.forEach(cityName => {
+            activeLists.forEach(storeMap => {
+                storeMap.forEach((stock, code) => {
+                    const dbItem = storeDatabase[code];
+                    if (dbItem && dbItem.city === cityName) {
+                        // Чтобы не дублировать магазины, проверяем, нет ли его уже в массиве
+                        if (!cityMatchStores.some(s => s.code === code)) {
+                            cityMatchStores.push({ code, stock, isExact: false });
+                        }
+                    }
+                });
+            });
+        });
+
+        if (cityMatchStores.length > 0) {
+            renderResults(cityMatchStores, "city");
+            return;
+        }
+    }
+
+    // 3. Если вообще ничего не совпало
+    renderResults([], "none");
 }
 
-// Группировка по городам, сортировка и вывод ТОП-3
-function renderResults(storesArray) {
+// Группировка по городам, сортировка и вывод результатов
+function renderResults(storesArray, matchType) {
     const container = document.getElementById('results-rows-container');
     container.innerHTML = ''; 
 
@@ -691,12 +750,27 @@ function renderResults(storesArray) {
 
         let badgesHtml = '';
         top3Stores.forEach(store => {
-            badgesHtml += `<button class="store-badge" onclick="openStoreCard('${store.code}')">${store.code} (${store.stock} шт)</button>`;
+            // Если это точное совпадение (магазин есть везде) — подсвечиваем его зелёной границей
+            // Если мягкое совпадение по городу — оставляем стандартный синий стиль бейджа
+            const badgeStyle = store.isExact 
+                ? 'background: #f0fdf4; color: #16a34a; border: 2px solid #bbf7d0;' 
+                : '';
+            
+            badgesHtml += `<button class="store-badge" style="${badgeStyle}" onclick="openStoreCard('${store.code}')">${store.code} (${store.stock} шт)</button>`;
         });
 
-        row.innerHTML = `<div class="result-city">${city}</div><div class="badges-container">${badgesHtml}</div>`;
+        // Добавляем красивую текстовую пометку для оператора, какой тип совпадения сработал
+        const matchLabel = matchType === "exact" 
+            ? `<span style="font-size:10px; color:#16a34a; background:#e1f5fe; padding:2px 6px; border-radius:4px; margin-left:8px; font-weight:700;">ТОЧНЫЙ МАГАЗИН</span>` 
+            : `<span style="font-size:10px; color:#2563eb; background:#eff6ff; padding:2px 6px; border-radius:4px; margin-left:8px; font-weight:700;">СОВПАДЕНИЕ ПО ГОРОДУ</span>`;
+
+        row.innerHTML = `
+            <div class="result-city" style="display:flex; align-items:center;">${city} ${matchLabel}</div>
+            <div class="badges-container">${badgesHtml}</div>
+        `;
         container.appendChild(row);
     });
+
     document.getElementById('results-section').style.display = 'block';
 }
 
