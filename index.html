@@ -925,13 +925,14 @@ async function fetchCoordinates(address) {
         return null;
     }
 }
-// Гибридный поиск: Города берутся из памяти, редкие деревни/ПГТ пробиваются через онлайн-бэкенд Google
+// Полностью автоматический, сверхбыстрый и исправленный гео-поиск по всей России
 async function findNearestStore() {
     const userInput = document.getElementById('geo-search-input').value.trim();
     const output = document.getElementById('geo-result-output');
     
     if (!userInput) { alert("Введите адрес доставки клиента"); return; }
 
+    // 1. Сканируем экран и собираем города, которые выдал поиск
     const cityElements = document.querySelectorAll('.result-city');
     const citiesOnScreen = [];
     cityElements.forEach(el => {
@@ -957,6 +958,7 @@ async function findNearestStore() {
         const inputWords = rawInput.split(/[\s,]+/).filter(w => w.length > 0);
         if (inputWords.length === 0) return;
 
+        // ИСПРАВЛЕНО: Берём СТРОГО первое слово как название города
         const targetCityName = inputWords[0]; 
         const regionFilterWords = inputWords.slice(1).map(w => w.replace(/область|обл|республика|край/g, '').trim()).filter(w => w.length > 0);
 
@@ -964,7 +966,7 @@ async function findNearestStore() {
         const cityArray = russianCitiesGeoCache[targetCityName];
         
         if (cityArray && cityArray.length > 0) {
-            // А. Город есть локально. Применяем стандартные сценарии
+            // А. Город есть локально в city.csv
             if (regionFilterWords.length > 0) {
                 const filterText = regionFilterWords.join(' ');
                 clientCoords = cityArray.find(c => c.region.includes(filterText) || filterText.includes(c.region));
@@ -975,15 +977,16 @@ async function findNearestStore() {
                 }
             } else {
                 if (cityArray.length === 1) {
-                    clientCoords = cityArray[0];
+                    clientCoords = cityArray[0]; // Фиксируем объект из массива
                 } else {
+                    // Если одноимённых много (Александровки), сортируем по населению
                     cityArray.sort((a, b) => b.population - a.population);
-                    clientCoords = cityArray[0];
+                    clientCoords = cityArray[0]; // Берем крупнейший объект
                     geoNotice = ` <span style="font-size:11px; color:#64748b; display:block; margin-top:4px;">ℹ️ Выбрана крупнейшая точка по умолчанию (${clientCoords.region.toUpperCase()}). Можно уточнить регион через пробел.</span>`;
                 }
             }
         } else {
-            // Б. Спасательный круг: Города нет в локальной базе (как Кадошкино). Идем в сеть за 0.5 сек!
+            // Б. Спасательный круг: Города нет в локальной базе (Кадошкино). Идем в онлайн-карты Google
             output.innerHTML = `⏳ Ищу "${userInput}" во всемирной базе карт Google...`;
             clientCoords = await fetchCoordinates(userInput);
         }
@@ -1008,7 +1011,7 @@ async function findNearestStore() {
             
             if (cityGeoArray && cityGeoArray.length > 0) {
                 cityGeoArray.sort((a, b) => b.population - a.population);
-                const cityGeo = cityGeoArray[0];
+                const cityGeo = cityGeoArray[0]; // Берём объект из массива городов-складов
 
                 const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
                 if (dist < minDistance) {
@@ -1018,10 +1021,16 @@ async function findNearestStore() {
             }
         }
 
-        // 4. ВЫВОД РЕЗУЛЬТАТА И ВРЕМЕНИ КЛИЕНТА
+        // 4. ВЫВОД РЕЗУЛЬТАТА И ЖЕЛЕЗНЫЙ РАСЧЕТ ВРЕМЕНИ КЛИЕНТА
         if (nearestCity) {
-            // ИСПРАВЛЕНО: Забираем часовой пояс из объекта внутри массива
-            const clientTz = (clientCoords && clientCoords[0]) ? (clientCoords[0].tz || 3) : 3;
+            // СВЕРХНАДЁЖНАЯ ПРОВЕРКА: Извлекаем tz независимо от того, массив это или одиночный объект
+            let clientTz = 3;
+            if (Array.isArray(clientCoords) && clientCoords.length > 0) {
+                clientTz = clientCoords[0].tz || 3;
+            } else if (clientCoords && clientCoords.tz) {
+                clientTz = clientCoords.tz;
+            }
+
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
             const localTimeOfClient = new Date(utc + (3600000 * clientTz));
