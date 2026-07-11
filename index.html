@@ -774,11 +774,20 @@ async function findNearestStore() {
             }
         }
 
+        // 4. Если ближайшая точка найдена, выводим результат и считаем время
         if (nearestCity) {
-            const tz = clientCoords.tz || 3; 
+            // Нам нужны координаты именно НАЙДЕННОГО города со страницы, чтобы узнать ЕГО часовой пояс!
+            // Для этого мы повторно запрашиваем координаты cleanCityName, и из них забираем правильный .tz
+            const cleanNearestCity = nearestCity.replace(/\(.*?\)/g, '').trim();
+            const nearestCityCoords = await fetchCoordinates(cleanNearestCity);
+            
+            // Если часовой пояс города-склада успешно получен, берем его, иначе дефолт 3 (Москва)
+            const targetTz = nearestCityCoords ? nearestCityCoords.tz : 3; 
+            
+            // Расчет точного местного времени для склада
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const localTimeOfCity = new Date(utc + (3600000 * tz));
+            const localTimeOfCity = new Date(utc + (3600000 * targetTz));
             
             const hours = String(localTimeOfCity.getHours()).padStart(2, '0');
             const minutes = String(localTimeOfCity.getMinutes()).padStart(2, '0');
