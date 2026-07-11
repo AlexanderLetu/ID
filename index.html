@@ -450,7 +450,7 @@
     </div>
     <script>
 // ========================================================
-// ГЛОБАЛЬНОЕ СОСТОЯНИЕ И НАСТРОЙКИ ПРИЛОЖЕНИЯ
+// ГЛОБАЛЬНЫЙ АДРЕС БЭКЕНДА И НАСТРОЙКИ ПРИЛОЖЕНИЯ
 // ========================================================
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdhMQfdzMI0BUpSxNrKnVhtplN6MOcKdmdfMri07x_aLfFjSNFONmb_KnEzuytEfXg/exec";
 
@@ -458,18 +458,23 @@ let currentSearchMode = 'city';
 let listCount = 2;              
 let storeDatabase = {};         
 
+// Автоматический старт при загрузке страницы
+window.addEventListener('DOMContentLoaded', () => {
+    loadDatabase();
+    if (localStorage.getItem('app-theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+});
+
+// Загрузка справочника из Google Таблицы
 function loadDatabase() {
     const statusText = document.querySelector('.status-active');
-    
-    // Если переменная пустая — выводим ошибку
     if (!GOOGLE_SCRIPT_URL) {
-        statusText.innerHTML = "🔴 Ошибка: Пропишите ссылку на Google Скрипт";
+        statusText.innerHTML = "🔴 Ошибка: Ссылка на бэкенд отсутствует";
         return;
     }
-    
     statusText.innerHTML = "⏳ Загрузка базы данных магазинов...";
     
-    // Делаем реальный запрос по нашей ссылке
     fetch(GOOGLE_SCRIPT_URL)
         .then(res => res.json())
         .then(data => {
@@ -486,25 +491,9 @@ function loadDatabase() {
         });
 }
 
-    statusText.innerHTML = "⏳ Загрузка базы данных магазинов...";
-    
-    fetch(GOOGLE_SCRIPT_URL)
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) {
-                statusText.innerHTML = "🔴 Ошибка базы: " + data.error;
-            } else {
-                storeDatabase = data;
-                statusText.innerHTML = `🟢 База городов: активна (${Object.keys(data).length} маг.)`;
-            }
-        })
-        .catch(err => {
-            statusText.innerHTML = "🔴 Нет связи с Google Таблицей";
-        });
-}
-
 function updateDatabase() { loadDatabase(); }
 
+// Управление вкладками режима поиска
 function setSearchMode(mode) {
     currentSearchMode = mode;
     const btnCity = document.getElementById('btn-search-city');
@@ -518,11 +507,13 @@ function setSearchMode(mode) {
     }
 }
 
+// Управление темной темой
 function toggleTheme() {
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('app-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
 }
 
+// Добавление динамических списков
 function addNewList() {
     listCount++;
     const container = document.getElementById('lists-container');
@@ -544,6 +535,7 @@ function removeList(id) {
     if (el) el.remove();
 }
 
+// Геометрическая формула расчета расстояния
 function calculateDistance(lat1, lng1, lat2, lng2) {
     const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -554,7 +546,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
-
+// Умный парсер грязных строк под формат "23 Братск2 3"
 function parseDirtyList(text) {
     const lines = text.split('\n');
     const storesMap = new Map();
@@ -582,6 +574,7 @@ function parseDirtyList(text) {
     }
     return storesMap;
 }
+
 // Главная функция запуска вычислений при нажатии синей кнопки
 function startSearch() {
     const activeLists = [];
@@ -662,7 +655,7 @@ function renderResults(storesArray) {
     document.getElementById('results-section').style.display = 'block';
 }
 
-// Карточка магазина и копирование
+// Карточка магазина и копирование (Шаг 2.1)
 function openStoreCard(storeCode) {
     const modal = document.getElementById('store-modal');
     document.getElementById('modal-store-title').innerText = `🏪 Карточка магазина: ${storeCode}`;
@@ -697,7 +690,7 @@ function copyText(elementId, buttonElement) {
     });
 }
 
-// Динамический гео-поиск координат через бэкенд
+// Динамический поиск координат через бэкенд Google Карт
 async function fetchCoordinates(address) {
     const url = `${GOOGLE_SCRIPT_URL}?geoQuery=${encodeURIComponent(address)}`;
     const res = await fetch(url);
@@ -705,7 +698,7 @@ async function fetchCoordinates(address) {
     return response.success ? response.data : null;
 }
 
-// Полностью автоматический поиск по всей России
+// Полностью автоматический поиск по всей России (Шаг 3)
 async function findNearestStore() {
     const userInput = document.getElementById('geo-search-input').value.trim();
     const output = document.getElementById('geo-result-output');
@@ -775,7 +768,7 @@ async function findNearestStore() {
     }
 }
 
-// Очистка формы
+// Очистка формы (Шаг 4)
 function resetAllForm() {
     const dynamicLists = document.querySelectorAll('.input-group');
     dynamicLists.forEach((list, index) => { if (index >= 2) list.remove(); });
@@ -787,7 +780,6 @@ function resetAllForm() {
     document.getElementById('results-section').style.display = 'none';
     document.getElementById('list-1').focus();
 }
-
     </script>
 
 </body>
