@@ -500,25 +500,35 @@ async function loadExternalGeoDatabase() {
         const csvText = await response.text();
         const lines = csvText.split('\n');
         
+        // Читаем заголовки из первой строки
         const headers = lines[0].split(',');
-        const cityIdx = headers.indexOf('city');
+        
+        // ИСПРАВЛЕНО: Ищем колонку 'address' вместо 'city', так как в твоем файле название города лежит там!
+        const addressIdx = headers.indexOf('address');
         const latIdx = headers.indexOf('geo_lat');
         const lngIdx = headers.indexOf('geo_lon');
         const tzIdx = headers.indexOf('timezone');
         const regionIdx = headers.indexOf('region');
-        const popIdx = headers.indexOf('population'); // Колонка населения для вычисления приоритета
+        const popIdx = headers.indexOf('population');
 
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             
-            if (row[cityIdx]) {
-                const cityName = row[cityIdx].replace(/"/g, '').trim().toLowerCase();
+            if (row[addressIdx]) {
+                // Получаем сырое название (например: "г Москва" или "г Новосибирск")
+                let rawAddress = row[addressIdx].replace(/"/g, '').trim().toLowerCase();
+                
+                // Очищаем от приставки "г " в начале строки, чтобы осталась чистая "москва"
+                let cityName = rawAddress.replace(/^г\s+/, '').trim();
+                
                 const regionName = row[regionIdx] ? row[regionIdx].replace(/"/g, '').trim().toLowerCase() : "";
                 const lat = parseFloat(row[latIdx]);
                 const lng = parseFloat(row[lngIdx]);
                 const population = row[popIdx] ? parseInt(row[popIdx].replace(/"/g, ''), 10) : 0;
                 
+                if (isNaN(lat) || isNaN(lng)) continue; // Пропускаем строки без координат
+
                 // Перевод текстовой таймзоны в чистую цифру
                 const tzText = row[tzIdx] ? row[tzIdx].replace(/"/g, '').trim() : "UTC+3";
                 let tzOffset = 3;
@@ -550,7 +560,7 @@ async function loadExternalGeoDatabase() {
         }
         
         statusText.innerHTML = originalStatus;
-        console.log(`🌍 Гео-база HFLabs готова. Одноименные города сгруппированы.`);
+        console.log(`🌍 Гео-база успешно адаптирована и загружена: ${Object.keys(russianCitiesGeoCache).length} уникальных названий.`);
         
     } catch (err) {
         statusText.innerHTML = "🔴 Ошибка загрузки глобальной гео-базы";
