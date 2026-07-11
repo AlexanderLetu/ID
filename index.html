@@ -913,7 +913,7 @@ function copyText(elementId, buttonElement) {
 
 async function fetchCoordinates(address) {
     // Добавляем к запросу ", Россия", чтобы OSM искал строго внутри страны
-    const queryUrl = `https://openstreetmap.org{encodeURIComponent(address + ", Россия")}&format=json&addressdetails=1&limit=1`;
+    const queryUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + ", Россия")}&format=json&addressdetails=1&limit=1`;
     
     try {
         const res = await fetch(queryUrl, {
