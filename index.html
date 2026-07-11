@@ -621,7 +621,6 @@ function parseDirtyList(text) {
 }
 
 // Главная функция запуска вычислений при нажатии синей кнопки
-// Главная функция запуска вычислений при нажатии синей кнопки
 function startSearch() {
     const activeLists = [];
     for (let i = 1; i <= 100; i++) {
@@ -636,11 +635,17 @@ function startSearch() {
         return;
     }
 
-    // 1. Проверяем точные совпадения ПО МАГАЗИНАМ (Строгое пересечение)
-    let exactStoreMatches = [];
+    // Сюда будем собирать все типы находок
+    let finalMatches = [];
+    // Наборы для контроля, чтобы не дублировать информацию
+    const addedExactCodes = new Set();
+    const addedSoftCities = new Set();
+
+    // 1. НАХОДИМ ТОЧНЫЕ СОВПАДЕНИЯ ПО МАГАЗИНАМ (Строгое пересечение)
     if (activeLists.length === 1) {
         activeLists[0].forEach((stock, code) => {
-            exactStoreMatches.push({ code, stock, isExact: true });
+            finalMatches.push({ code, stock, isExact: true });
+            addedExactCodes.add(code);
         });
     } else {
         const firstMap = activeLists[0];
@@ -656,19 +661,16 @@ function startSearch() {
                     minStock = Math.min(minStock, activeLists[j].get(code));
                 }
             }
-            if (isInAll) exactStoreMatches.push({ code, stock: minStock, isExact: true });
+            if (isInAll) {
+                finalMatches.push({ code, stock: minStock, isExact: true });
+                addedExactCodes.add(code);
+            }
         });
     }
 
-    // Если точные совпадения по магазинам НАЙДЕНЫ, выводим их
-    if (exactStoreMatches.length > 0) {
-        renderResults(exactStoreMatches, "exact");
-        return;
-    }
-
-    // 2. Если точных магазинов нет, ищем мягкие совпадения ПО ГОРОДАМ (Мягкое пересечение)
+    // 2. НАХОДИМ МЯГКИЕ СОВПАДЕНИЯ ПО ГОРОДАМ (Если списков больше одного)
     if (activeLists.length > 1) {
-        // Переводим каждый список из кодов магазинов в список уникальных городов
+        // Переводим каждый список кодов в сет уникальных названий городов
         const listsOfCities = activeLists.map(storeMap => {
             const citySet = new Set();
             storeMap.forEach((stock, code) => {
@@ -678,7 +680,7 @@ function startSearch() {
             return citySet;
         });
 
-        // Ищем города, которые есть ОДНОВРЕМЕННО во всех сетах городов
+        // Ищем города, которые присутствуют ОДНОВРЕМЕННО во всех списках
         const matchingCities = [];
         if (listsOfCities.length > 0) {
             listsOfCities[0].forEach(cityName => {
@@ -693,32 +695,27 @@ function startSearch() {
             });
         }
 
-        // Собираем все магазины из совпавших городов, которые были хоть в одном списке
-        let cityMatchStores = [];
+        // Собираем магазины из совпавших городов, которые мы ЕЩЕ НЕ ДОБАВИЛИ как точные
         matchingCities.forEach(cityName => {
             activeLists.forEach(storeMap => {
                 storeMap.forEach((stock, code) => {
                     const dbItem = storeDatabase[code];
-                    if (dbItem && dbItem.city === cityName) {
-                        // Чтобы не дублировать магазины, проверяем, нет ли его уже в массиве
-                        if (!cityMatchStores.some(s => s.code === code)) {
-                            cityMatchStores.push({ code, stock, isExact: false });
+                    // Если магазин относится к совпавшему городу и он НЕ является точным пересечением
+                    if (dbItem && dbItem.city === cityName && !addedExactCodes.has(code)) {
+                        // Проверяем на дубли в рамках мягкого поиска
+                        if (!finalMatches.some(s => s.code === code)) {
+                            finalMatches.push({ code, stock, isExact: false, softCityKey: cityName });
                         }
                     }
                 });
             });
         });
-
-        if (cityMatchStores.length > 0) {
-            renderResults(cityMatchStores, "city");
-            return;
-        }
     }
 
-    // 3. Если вообще ничего не совпало
-    renderResults([], "none");
+    // Передаем весь объединенный массив в отрисовку
+    // Флаг "dynamic" укажет renderResults, что нужно смотреть на поле .isExact внутри каждого элемента
+    renderResults(finalMatches, "dynamic");
 }
-
 // Группировка по городам, сортировка и вывод результатов
 function renderResults(storesArray, matchType) {
     const container = document.getElementById('results-rows-container');
@@ -730,42 +727,53 @@ function renderResults(storesArray, matchType) {
         return;
     }
 
-    const groupedByCity = {};
+    const groupedRows = {};
+
     storesArray.forEach(item => {
         const dbItem = storeDatabase[item.code];
-        let groupKey = "Неизвестный код";
+        let cityName = "Неизвестный код";
+        
         if (dbItem) {
-            groupKey = (currentSearchMode === 'city') ? dbItem.city : item.code;
+            cityName = (currentSearchMode === 'city') ? dbItem.city : item.code;
+        } else if (item.softCityKey) {
+            cityName = item.softCityKey;
         }
-        if (!groupedByCity[groupKey]) groupedByCity[groupKey] = [];
-        groupedByCity[groupKey].push(item);
+
+        const typeLabel = item.isExact ? "exact" : "soft";
+        const groupKey = `${cityName}__${typeLabel}`;
+
+        if (!groupedRows[groupKey]) {
+            groupedRows[groupKey] = {
+                cityName: cityName,
+                isExact: item.isExact,
+                stores: []
+            };
+        }
+        groupedRows[groupKey].stores.push(item);
     });
 
-    Object.keys(groupedByCity).forEach(city => {
+    Object.keys(groupedRows).forEach(key => {
+        const group = groupedRows[key];
         const row = document.createElement('div');
         row.className = 'result-row';
 
-        const sortedStores = groupedByCity[city].sort((a, b) => b.stock - a.stock);
+        const sortedStores = group.stores.sort((a, b) => b.stock - a.stock);
         const top3Stores = sortedStores.slice(0, 3);
 
         let badgesHtml = '';
         top3Stores.forEach(store => {
-            // Если это точное совпадение (магазин есть везде) — подсвечиваем его зелёной границей
-            // Если мягкое совпадение по городу — оставляем стандартный синий стиль бейджа
             const badgeStyle = store.isExact 
                 ? 'background: #f0fdf4; color: #16a34a; border: 2px solid #bbf7d0;' 
                 : '';
-            
             badgesHtml += `<button class="store-badge" style="${badgeStyle}" onclick="openStoreCard('${store.code}')">${store.code} (${store.stock} шт)</button>`;
         });
 
-        // Добавляем красивую текстовую пометку для оператора, какой тип совпадения сработал
-        const matchLabel = matchType === "exact" 
+        const matchLabel = group.isExact 
             ? `<span style="font-size:10px; color:#16a34a; background:#e1f5fe; padding:2px 6px; border-radius:4px; margin-left:8px; font-weight:700;">ТОЧНЫЙ МАГАЗИН</span>` 
             : `<span style="font-size:10px; color:#2563eb; background:#eff6ff; padding:2px 6px; border-radius:4px; margin-left:8px; font-weight:700;">СОВПАДЕНИЕ ПО ГОРОДУ</span>`;
 
         row.innerHTML = `
-            <div class="result-city" style="display:flex; align-items:center;">${city} ${matchLabel}</div>
+            <div class="result-city" style="display:flex; align-items:center;">${group.cityName} ${matchLabel}</div>
             <div class="badges-container">${badgesHtml}</div>
         `;
         container.appendChild(row);
@@ -773,7 +781,6 @@ function renderResults(storesArray, matchType) {
 
     document.getElementById('results-section').style.display = 'block';
 }
-
 // Карточка магазина и копирование (Шаг 2.1)
 function openStoreCard(storeCode) {
     const modal = document.getElementById('store-modal');
