@@ -967,16 +967,6 @@ async function findNearestStore() {
                 }
             }
         }
-            
-            if (cityGeo) {
-                // Считаем расстояние между деревней клиента и городом-складом локально процессором за 0.0001 сек
-                const dist = calculateDistance(clientCoords.lat, clientCoords.lng, cityGeo.lat, cityGeo.lng);
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    nearestCity = cityName;
-                }
-            }
-        }
 
         // 4. Выводим результат и рассчитываем местное время КЛИЕНТА на основе его таймзоны
         if (nearestCity) {
