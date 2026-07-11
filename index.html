@@ -336,7 +336,34 @@
         .btn-copy {
             background: none; border: none; cursor: pointer; font-size: 14px;
         }
+        /* Стили для нового верхнего статус-бара */
+        .status-bar-top {
+            display: flex;
+            justify-content: flex-end; /* Сдвигает весь текст вправо */
+            align-items: center;
+            gap: 14px;
+            font-size: 11px;
+            color: #64748b;
+            margin-top: -16px; /* Подтягивает статус ближе к заголовку */
+            margin-bottom: 16px; /* Делает отступ до кнопок */
+            padding-right: 4px;
+        }
 
+        .status-refresh-btn {
+            color: #3b82f6;
+            cursor: pointer;
+            font-weight: 500;
+            transition: color 0.15s;
+        }
+
+        .status-refresh-btn:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        
+        /* Поддержка темной темы для верхнего статуса */
+        body.dark-mode .status-bar-top { color: #94a3b8; }
+        body.dark-mode .status-refresh-btn { color: #60a5fa; }
     </style>
 </head>
 <body>
