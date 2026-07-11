@@ -505,7 +505,7 @@ async function loadExternalGeoDatabase() {
         // Разбираем CSV по строкам
         const lines = csvText.split('\n');
         
-        // Читаем первую строку (заголовки), чтобы точно знать индексы колонок
+        // Массив заголовков получаем из первой строки (индекс 0)
         const headers = lines[0].split(',');
         const cityIdx = headers.indexOf('city');
         const latIdx = headers.indexOf('geo_lat');
@@ -935,11 +935,13 @@ async function findNearestStore() {
     output.innerHTML = `⏳ Ищу деревню "${userInput}" на картах всей России...`;
 
     try {
-        // 2. Делаем ОДИН сетевой запрос — пробиваем только координаты глухой деревни клиента через Google-бэкенд
-        const clientCoords = await fetchCoordinates(userInput);
+        // 2. ИЩЕМ КООРДИНАТЫ КЛИЕНТА ЛОКАЛЬНО: Проверяем город клиента в нашей базе HFLabs из памяти
+        const cleanClientInput = userInput.trim().toLowerCase();
+        const clientCoords = russianCitiesGeoCache[cleanClientInput];
+        
         if (!clientCoords) {
             output.style.color = '#ef4444';
-            output.innerHTML = "❌ Google Maps не смог найти адрес клиента. Уточните область или район.";
+            output.innerHTML = "❌ Город клиента не найден в гео-базе. Пожалуйста, проверьте правильность написания (например: Москва, Саранск, Уфа).";
             return;
         }
 
