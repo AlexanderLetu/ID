@@ -557,6 +557,23 @@
     </div>
     
     <script>
+        let globalNearestCityName = "";
+
+function scrollToNearestCity() {
+    if (!globalNearestCityName) return;
+    
+    // Ищем строку с этим городом на экране
+    const cleanTarget = globalNearestCityName.trim().toLowerCase();
+    const targetRow = document.querySelector(`.result-row[data-city="${cleanTarget}"]`);
+    
+    if (targetRow) {
+        // Плавно перемещаем экран к этой строке по центру
+        targetRow.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+    }
+}
         // Функция для поиска и красивой подсветки нужного города
 function highlightNearestCityRow(targetCityName) {
     if (!targetCityName) return;
@@ -1236,6 +1253,12 @@ async function findNearestStore() {
             
             // ЗАПУСКАЕМ КРАСИВУЮ ПОДСВЕТКУ СТРОКИ ГОРОДА НА ЭКРАНЕ
             highlightNearestCityRow(nearestCity);
+          // 🔥 ФИЧА №5: Запоминаем город для домика и показываем кнопку!
+            globalNearestCityName = nearestCity;
+            const homeBtn = document.getElementById('btn-scroll-to-nearest');
+            if (homeBtn) {
+                homeBtn.style.display = 'block';
+            }
             
         } else {
             output.style.color = '#ef4444';
@@ -1288,7 +1311,13 @@ function resetAllForm() {
     if (scrollNav) {
         scrollNav.classList.remove('visible');
     }
-    
+    // Скрываем кнопку-домик при сбросе формы
+    const homeBtn = document.getElementById('btn-scroll-to-nearest');
+    if (homeBtn) {
+        homeBtn.style.display = 'none';
+    }
+    globalNearestCityName = ""; // Обнуляем имя города
+
     // Возвращаем фокус на первый список
     if (list1) list1.focus();
 }
@@ -1296,6 +1325,7 @@ function resetAllForm() {
     </script>
 <div id="scroll-nav" class="scroll-nav">
   <button onclick="scrollToTop()" title="Наверх">▲</button>
+    <button id="btn-scroll-to-nearest" onclick="scrollToNearestCity()" title="К ближайшему варианту" style="display: none; background-color: #ea580c;">🏠</button>
   <button onclick="scrollToBottom()" title="Вниз">▼</button>
 </div>
 </body>
