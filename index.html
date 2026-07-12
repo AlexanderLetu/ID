@@ -423,6 +423,27 @@
             color: #34d399 !important;
             border-color: #059669 !important;
         }
+        /* Класс для плавной и красивой подсветки строки */
+.highlight-city {
+  animation: pulse-highlight 2s ease-in-out;
+  border: 2px solid #ff6b35 !important; /* Оранжевая рамка под цвет кнопки */
+  background-color: rgba(255, 107, 53, 0.1) !important; /* Легкий оранжевый фон */
+}
+
+@keyframes pulse-highlight {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.7);
+  }
+  50% {
+    transform: scale(1.02); /* Строка слегка увеличится, привлекая внимание */
+    box-shadow: 0 0 15px 5px rgba(255, 107, 53, 0.5);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
+  }
+}
     </style>
 </head>
 <body>
@@ -536,6 +557,32 @@
     </div>
     
     <script>
+        // Функция для поиска и красивой подсветки нужного города
+function highlightNearestCityRow(targetCityName) {
+    if (!targetCityName) return;
+    
+    const cleanTarget = targetCityName.trim().toLowerCase();
+    
+    // Сначала убираем старую подсветку со всех строк, если она была
+    document.querySelectorAll('.result-row').forEach(row => {
+        row.classList.remove('highlight-city');
+    });
+    
+    // Ищем строку с нужным городом
+    const targetRow = document.querySelector(`.result-row[data-city="${cleanTarget}"]`);
+    
+    if (targetRow) {
+        // Добавляем класс анимации и подсветки
+        targetRow.classList.add('highlight-city');
+        
+        // Плавно скроллим к подсвеченной строке, делая небольшой отступ по центру экрана
+        targetRow.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+    }
+}
+
         // Функции для плавного скролла
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -934,6 +981,9 @@ function renderResults(storesArray, matchType) {
         const row = document.createElement('div');
         row.className = 'result-row';
 
+      // Привязываем имя города в нижнем регистре для удобного поиска
+        row.setAttribute('data-city', group.cityName.trim().toLowerCase());
+
         const sortedStores = group.stores.sort((a, b) => b.stock - a.stock);
         const top3Stores = sortedStores.slice(0, 3);
 
@@ -1170,6 +1220,10 @@ async function findNearestStore() {
                 output.style.color = '#ea580c'; 
                 output.innerHTML = `💡 Ближайшая точка: <strong>${nearestCity}</strong> (🚗 ~${roadDistance} км по трассе от ${userInput}, местное время клиента <strong>${hours}:${minutes}</strong>)` + geoNotice;
             }
+            
+            // ЗАПУСКАЕМ КРАСИВУЮ ПОДСВЕТКУ СТРОКИ ГОРОДА НА ЭКРАНЕ
+            highlightNearestCityRow(nearestCity);
+            
         } else {
             output.style.color = '#ef4444';
             output.innerHTML = "⚠️ Не удалось сопоставить города на экране с гео-базой данных.";
