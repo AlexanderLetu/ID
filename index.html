@@ -717,7 +717,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Загрузка справочника из Google Таблицы
+// Загрузка справочника из Google Таблицы с добавлением города в адрес
 function loadDatabase() {
     const statusText = document.querySelector('.status-active');
     if (!GOOGLE_SCRIPT_URL) {
@@ -732,6 +732,19 @@ function loadDatabase() {
             if (data.error) {
                 statusText.innerHTML = "🔴 Ошибка базы: " + data.error;
             } else {
+                // Модифицируем базу данных: склеиваем город и адрес сразу при загрузке
+                for (let code in data) {
+                    const store = data[code];
+                    if (store.city && store.address) {
+                        // Очищаем имя города от лишних пробелов
+                        const cleanCity = store.city.trim();
+                        // Если адрес уже начинается с этого города, не дублируем его
+                        if (!store.address.toLowerCase().startsWith(cleanCity.toLowerCase())) {
+                            store.address = `${cleanCity} ${store.address}`;
+                        }
+                    }
+                }
+
                 storeDatabase = data;
                 statusText.innerHTML = `🟢 База городов: активна (${Object.keys(data).length} маг.)`;
             }
