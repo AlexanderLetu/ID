@@ -657,6 +657,17 @@ window.addEventListener('DOMContentLoaded', () => {
     } else {
         document.getElementById('theme-toggle-btn').innerText = '🌙';
     }
+
+    // Слушатель нажатия Enter для поля ввода города клиента
+    const geoInput = document.getElementById('geo-search-input');
+    if (geoInput) {
+        geoInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Защита от перезагрузки страницы
+                findNearestStore();     // Запуск расчёта по Enter
+            }
+        });
+    }
 });
 
 // Загрузка справочника из Google Таблицы
