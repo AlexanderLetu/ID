@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <link rel="icon" type="image/jpg" href="favicon.jpg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Инструмент поиска пересечений</title>
+    <title>Инструмент поиска для ИД</title>
     <style>
-        /* Глобальные настройки и фон со скриншота */
+        /* Глобальные настройки и фон */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -76,7 +76,7 @@
             gap: 6px;
         }
 
-        /* Активная кнопка синего цвета со скриншота */
+        /* Активная кнопка синего цвета */
         .nav-btn.active {
             background: #3b82f6;
             color: #ffffff;
@@ -345,13 +345,13 @@
         /* Стили для нового верхнего статус-бара */
         .status-bar-top {
             display: flex;
-            justify-content: flex-end; /* Сдвигает весь текст вправо */
+            justify-content: flex-end; 
             align-items: center;
             gap: 14px;
             font-size: 11px;
             color: #64748b;
-            margin-top: -16px; /* Подтягивает статус ближе к заголовку */
-            margin-bottom: 16px; /* Делает отступ до кнопок */
+            margin-top: -16px; 
+            margin-bottom: 16px; 
             padding-right: 4px;
         }
 
@@ -370,7 +370,7 @@
         /* Поддержка темной темы для верхнего статуса */
         body.dark-mode .status-bar-top { color: #94a3b8; }
         body.dark-mode .status-refresh-btn { color: #60a5fa; }
-                /* Цвет заголовка результатов по умолчанию для светлой темы */
+        /* Цвет заголовка результатов по умолчанию для светлой темы */
         .results-title {
             color: #1e3a5f !important;
         }
@@ -396,7 +396,7 @@
             <span class="status-refresh-btn" onclick="updateDatabase()">🔄 Обновить базу сейчас</span>
         </div>
         <!-- Заголовок сайта -->
-        <h1 class="app-title">📍 Инструмент поиска пересечений и ближайшего города</h1>
+        <h1 class="app-title">👩 Добро пожаловать! Приступим?</h1>
         
         <!-- 🎛️ Верхняя панель управления -->
         <div class="top-navbar">
@@ -470,9 +470,9 @@
             </div>
         </div>
 
-    </div> <!-- Конец .app-card -->
+    </div> 
 
-    <!-- ВСПЛЫВАЮЩЕЕ ОКНО: КАРТОЧКА МАГАЗИНА (Шаг 2.1) -->
+    <!-- ВСПЛЫВАЮЩЕЕ ОКНО: КАРТОЧКА МАГАЗИНА -->
     <div id="store-modal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-close" onclick="closeModal(null)">×</button>
@@ -531,11 +531,10 @@ async function loadExternalGeoDatabase() {
             let cityName = "";
             
             // 🌟 УМНАЯ ЛОГИКА ОПРЕДЕЛЕНИЯ ИМЕНИ ГОРОДА:
-            // 1. Проверяем, есть ли чистое имя в колонке 'city' (как у Домодедово)
             if (cityIdx !== -1 && row[cityIdx] && row[cityIdx].replace(/"/g, '').trim() !== "") {
                 cityName = row[cityIdx].replace(/"/g, '').trim().toLowerCase();
             } 
-            // 2. Если 'city' пустой, берем данные из 'address' и вычищаем (как у Москвы)
+            // 2. Если 'city' пустой, берем данные из 'address' и вычищаем
             else if (addressIdx !== -1 && row[addressIdx]) {
                 let rawAddress = row[addressIdx].replace(/"/g, '').trim().toLowerCase();
                 cityName = rawAddress.replace(/^г\s+/, '').trim();
@@ -550,7 +549,7 @@ async function loadExternalGeoDatabase() {
             const regionName = row[regionIdx] ? row[regionIdx].replace(/"/g, '').trim().toLowerCase() : "";
             const population = row[popIdx] ? parseInt(row[popIdx].replace(/"/g, ''), 10) : 0;
             
-            // Перевод текстовой таймзоны в цифру (ИСПРАВЛЕНО)
+            // Перевод текстовой таймзоны в цифру
             const tzText = row[tzIdx] ? row[tzIdx].replace(/"/g, '').trim() : "UTC+3";
             let tzOffset = 3;
             if (tzText.includes('+')) {
@@ -603,7 +602,7 @@ let storeDatabase = {};
 
 // Автоматический старт при загрузке страницы
 window.addEventListener('DOMContentLoaded', () => {
-    loadDatabase(); // Скачивает твои магазины из Google Таблицы
+    loadDatabase(); // Скачивает магазины из Google Таблицы
     loadExternalGeoDatabase(); // Параллельно скачивает 1000 городов России с GitHub HFLabs!
     
     if (localStorage.getItem('app-theme') === 'dark') {
@@ -661,7 +660,6 @@ function toggleTheme() {
     document.body.classList.toggle('dark-mode');
     const isDark = document.body.classList.contains('dark-mode');
     
-    // Меняем иконку на кнопке: если темно — показываем солнце, если светло — луну
     document.getElementById('theme-toggle-btn').innerText = isDark ? '☀️' : '🌙';
     
     localStorage.setItem('app-theme', isDark ? 'dark' : 'light');
@@ -752,7 +750,7 @@ function startSearch() {
     // 1. НАХОДИМ ТОЧНЫЕ СОВПАДЕНИЯ ПО МАГАЗИНАМ (Строгое пересечение)
     if (activeLists.length === 1) {
         activeLists[0].forEach((stock, code) => {
-            // ФИЛЬТР: Проверяем, хватает ли товара под запрос оператора
+            // ФИЛЬТР: Проверяем, хватает ли товара под запрос
             if (stock >= requiredStock) {
                 finalMatches.push({ code, stock, isExact: true });
                 addedExactCodes.add(code);
@@ -981,7 +979,7 @@ async function findNearestStore() {
     
     if (!userInput) { alert("Введите адрес доставки клиента"); return; }
 
-    // 1. Сканируем экран и собираем чистые города (без плашек "ТОЧНЫЙ МАГАЗИН" и эмодзи)
+    // 1. Сканируем экран и собираем чистые города (без плашек "ТОЧНЫЙ МАГАЗИН")
     const cityElements = document.querySelectorAll('.result-city');
     const citiesOnScreen = [];
     cityElements.forEach(el => {
