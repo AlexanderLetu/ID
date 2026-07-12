@@ -869,7 +869,17 @@ function startSearch() {
         });
     }
 
+    // 1. Сначала отрисовываем результаты на странице
     renderResults(finalMatches, "dynamic");
+    
+    // 2. Делаем плавающие кнопки навигации видимыми
+    const scrollNav = document.getElementById('scroll-nav');
+    if (scrollNav) {
+        scrollNav.classList.add('visible');
+    }
+    
+    // 3. Плавно скроллим страницу в самый низ к началу результатов
+    scrollToBottom();
 }
 
 // Группировка по городам, сортировка и вывод результатов
@@ -1195,6 +1205,11 @@ function resetAllForm() {
     // Скрываем карточку результатов
     const resSection = document.getElementById('results-section');
     if (resSection) resSection.style.display = 'none';
+    
+    const scrollNav = document.getElementById('scroll-nav');
+    if (scrollNav) {
+        scrollNav.classList.remove('visible');
+    }
     
     // Возвращаем фокус на первый список
     if (list1) list1.focus();
